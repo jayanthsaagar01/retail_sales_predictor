@@ -300,12 +300,13 @@ def data_upload_page():
             st.subheader("Summary Statistics")
             st.dataframe(processed_data.describe())
             
-            # Save to database
-            with st.spinner("Saving data to database..."):
-                if save_sales_data(processed_data):
-                    st.success("Sales data saved to database successfully!")
+            # Save to Firebase
+            with st.spinner("Saving data to Firebase..."):
+                user_id = st.session_state.get('user_id', None)
+                if save_sales_data_to_firebase(processed_data, user_id):
+                    st.success("Sales data saved to Firebase successfully!")
                 else:
-                    st.warning("Data is available in memory but could not be saved to database.")
+                    st.warning("Data is available in memory but could not be saved to Firebase.")
             
         except Exception as e:
             st.error(f"Error processing file: {e}")
@@ -338,9 +339,10 @@ def data_upload_page():
                 weather_data = get_weather_data(location, start_date, end_date)
                 st.session_state.weather_data = weather_data
                 
-                # Save weather data to database
-                if save_weather_data(weather_data, location):
-                    st.success("Weather data fetched and saved to database successfully!")
+                # Save weather data to Firebase
+                user_id = st.session_state.get('user_id', None)
+                if save_weather_data_to_firebase(weather_data, location, user_id):
+                    st.success("Weather data fetched and saved to Firebase successfully!")
                 else:
                     st.success("Weather data fetched successfully!")
                 
@@ -354,9 +356,10 @@ def data_upload_page():
                 sentiment_data = analyze_sentiment(keywords, start_date, end_date)
                 st.session_state.sentiment_data = sentiment_data
                 
-                # Save sentiment data to database
-                if save_sentiment_data(sentiment_data, keywords):
-                    st.success("Sentiment analysis completed and saved to database!")
+                # Save sentiment data to Firebase
+                user_id = st.session_state.get('user_id', None)
+                if save_sentiment_data_to_firebase(sentiment_data, keywords, user_id):
+                    st.success("Sentiment analysis completed and saved to Firebase!")
                 else:
                     st.success("Sentiment analysis completed!")
                 
@@ -554,14 +557,16 @@ def sales_prediction_page():
                     # Save model to Firebase Storage
                     model_url = save_model_to_firebase(model, model_name, st.session_state.user_id)
                     
-                    # Save to PostgreSQL database
-                    save_model_metadata(
-                        name=model_name,
-                        user_id=st.session_state.user_id,
-                        model_type=model_type,
-                        metrics=metrics,
-                        storage_path=model_url
-                    )
+                    # Save model metadata directly to Firestore
+                    model_metadata = {
+                        "name": model_name,
+                        "user_id": st.session_state.user_id,
+                        "type": model_type,
+                        "metrics": json.dumps(metrics),
+                        "storage_path": model_url,
+                        "created_at": datetime.now().isoformat()
+                    }
+                    save_to_firestore("models", model_name, model_metadata)
                     
                     if model_url:
                         st.success(f"Model trained and saved successfully! You can access it in My Models.")
@@ -677,14 +682,8 @@ def my_models_page():
         
     st.subheader("Saved Models")
     
-    # Get user's models from PostgreSQL database
-    db_models = get_user_models(st.session_state.user_id)
-    
-    # Also get models from Firestore for backward compatibility
-    firebase_models = get_from_firestore("models", query=("user_id", "==", st.session_state.user_id))
-    
-    # Combine models from both sources
-    user_models = db_models + firebase_models if firebase_models else db_models
+    # Get models from Firestore
+    user_models = get_from_firestore("models", query=("user_id", "==", st.session_state.user_id)) or []
     
     if not user_models:
         st.info("You haven't saved any models yet. Train a model in the Sales Prediction page.")
