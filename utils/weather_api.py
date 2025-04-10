@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import random
+import requests
+import os
+import streamlit as st
+import json
 
 def get_weather_data(location, start_date, end_date):
     """
@@ -30,32 +34,126 @@ def get_weather_data(location, start_date, end_date):
     # Calculate date range
     date_range = pd.date_range(start=start_date, end=end_date)
     
-    # Here we would typically call a weather API to get real data
-    # For this example, we'll generate synthetic data based on the location and date range
-    
-    # In a real application, we would use a weather API like OpenWeatherMap:
-    # api_key = os.getenv("OPENWEATHERMAP_API_KEY", "default_key")
-    # And make API calls for each date in the range
-    
     weather_data = []
     
-    # Generate synthetic weather data for each date
-    for date in date_range:
-        # Generate weather data based on typical patterns for the time of year
-        temperature, precipitation, weather_condition = generate_synthetic_weather(location, date)
+    # Try to use a real weather API if API key is available
+    api_key = st.secrets.get("OPENWEATHERMAP_API_KEY", "")
+    
+    if api_key:
+        try:
+            # If we have a weather API key, use the real API
+            st.info("Using OpenWeatherMap API for weather data")
+            
+            # Get historical data for a sample of dates to limit API calls
+            # For a production app, you would need to handle this more efficiently
+            sample_dates = get_sample_dates(date_range, max_samples=10)
+            
+            for date in sample_dates:
+                date_str = date.strftime("%Y-%m-%d")
+                
+                # OpenWeatherMap historical data endpoint
+                url = f"https://api.openweathermap.org/data/2.5/weather?q={location}&dt={int(date.timestamp())}&appid={api_key}&units=metric"
+                
+                response = requests.get(url)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    temperature = data['main']['temp']
+                    precipitation = data.get('rain', {}).get('1h', 0) if 'rain' in data else 0
+                    weather_condition = data['weather'][0]['main']
+                    
+                    weather_data.append({
+                        'Date': date,
+                        'Location': location,
+                        'Temperature': temperature,
+                        'Precipitation': precipitation,
+                        'Weather_Condition': weather_condition
+                    })
+                else:
+                    # If API call fails, fall back to synthetic data for this date
+                    temperature, precipitation, weather_condition = generate_synthetic_weather(location, date)
+                    
+                    weather_data.append({
+                        'Date': date,
+                        'Location': location,
+                        'Temperature': temperature,
+                        'Precipitation': precipitation,
+                        'Weather_Condition': weather_condition
+                    })
+            
+            # Interpolate for missing dates
+            if len(sample_dates) < len(date_range):
+                weather_df = pd.DataFrame(weather_data)
+                
+                # Create a complete DataFrame with all dates
+                complete_df = pd.DataFrame({'Date': date_range})
+                
+                # Merge with the data we have
+                merged_df = pd.merge(complete_df, weather_df, on='Date', how='left')
+                
+                # Fill location for missing dates
+                merged_df['Location'] = merged_df['Location'].fillna(location)
+                
+                # Interpolate numerical columns
+                for col in ['Temperature', 'Precipitation']:
+                    merged_df[col] = merged_df[col].interpolate(method='linear')
+                
+                # Forward fill weather condition
+                merged_df['Weather_Condition'] = merged_df['Weather_Condition'].fillna(method='ffill')
+                merged_df['Weather_Condition'] = merged_df['Weather_Condition'].fillna(method='bfill')
+                
+                return merged_df
+                
+        except Exception as e:
+            st.warning(f"Error fetching from weather API: {str(e)}. Using synthetic data instead.")
+    
+    # If no API key or API call failed, generate synthetic data
+    if not weather_data:
+        st.info("Using synthetic weather data (no API key provided)")
         
-        weather_data.append({
-            'Date': date,
-            'Location': location,
-            'Temperature': temperature,
-            'Precipitation': precipitation,
-            'Weather_Condition': weather_condition
-        })
+        # Generate synthetic weather data for each date
+        for date in date_range:
+            # Generate weather data based on typical patterns for the time of year
+            temperature, precipitation, weather_condition = generate_synthetic_weather(location, date)
+            
+            weather_data.append({
+                'Date': date,
+                'Location': location,
+                'Temperature': temperature,
+                'Precipitation': precipitation,
+                'Weather_Condition': weather_condition
+            })
     
     # Convert to DataFrame
     weather_df = pd.DataFrame(weather_data)
     
     return weather_df
+
+def get_sample_dates(date_range, max_samples=10):
+    """
+    Get a sample of dates to query API
+    
+    Parameters:
+    -----------
+    date_range : pandas.DatetimeIndex
+        Full date range
+    max_samples : int
+        Maximum number of samples to take
+    
+    Returns:
+    --------
+    list
+        List of sampled datetime objects
+    """
+    n_dates = len(date_range)
+    
+    if n_dates <= max_samples:
+        return date_range
+    
+    # Take evenly spaced samples
+    indices = np.linspace(0, n_dates - 1, max_samples, dtype=int)
+    return [date_range[i] for i in indices]
 
 def generate_synthetic_weather(location, date):
     """

@@ -56,12 +56,41 @@ if 'combined_data' not in st.session_state:
 if 'predictions' not in st.session_state:
     st.session_state.predictions = None
 
-# Authentication function (simple for demonstration)
-def authenticate(username, password):
-    # In a real application, this would check against a secure database
-    # For now, we'll use a simple check
-    if username and password:  # Simple validation just requiring non-empty fields
+# Authentication function using Firebase
+def authenticate(email, password):
+    """
+    Authenticate a user using Firebase Authentication
+    
+    Parameters:
+    -----------
+    email : str
+        User email
+    password : str
+        User password
+    
+    Returns:
+    --------
+    bool
+        True if authentication successful, False otherwise
+    """
+    # Use Firebase authentication
+    user = firebase_authenticate(email, password)
+    
+    if user:
+        # Store user information in session state
+        st.session_state.user_id = user['localId']
+        st.session_state.user_token = user['idToken']
+        st.session_state.user_email = email
         return True
+    
+    # If Firebase authentication fails or not configured, fall back to simple validation
+    # This is for development purposes only and should be removed in production
+    if "BYPASS_AUTH" in st.secrets and st.secrets["BYPASS_AUTH"] and email and password:
+        st.session_state.user_id = "test_user"
+        st.session_state.user_token = "test_token"
+        st.session_state.user_email = email
+        return True
+        
     return False
 
 # Login page
@@ -75,34 +104,83 @@ def login_page():
                  caption="Data Visualization Dashboard", use_column_width=True)
         
     with col2:
-        st.subheader("Login")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
+        # Create tabs for login and registration
+        login_tab, register_tab = st.tabs(["Login", "Register"])
         
-        if st.button("Login"):
-            if authenticate(username, password):
-                st.session_state.authenticated = True
-                st.session_state.username = username
-                st.success("Login successful!")
-                st.rerun()
-            else:
-                st.error("Invalid username or password")
+        with login_tab:
+            st.subheader("Login")
+            email = st.text_input("Email", key="login_email")
+            password = st.text_input("Password", type="password", key="login_password")
+            
+            if st.button("Login"):
+                if authenticate(email, password):
+                    st.session_state.authenticated = True
+                    st.session_state.username = email.split('@')[0]  # Use first part of email as username
+                    st.success("Login successful!")
+                    st.rerun()
+                else:
+                    st.error("Invalid email or password")
+        
+        with register_tab:
+            st.subheader("Register")
+            email = st.text_input("Email", key="register_email")
+            password = st.text_input("Password", type="password", key="register_password")
+            confirm_password = st.text_input("Confirm Password", type="password")
+            display_name = st.text_input("Display Name (optional)")
+            
+            if st.button("Register"):
+                if password != confirm_password:
+                    st.error("Passwords don't match")
+                elif len(password) < 6:
+                    st.error("Password must be at least 6 characters")
+                else:
+                    # Register user with Firebase
+                    user = firebase_register_user(email, password, display_name)
+                    if user:
+                        st.session_state.authenticated = True
+                        st.session_state.username = display_name if display_name else email.split('@')[0]
+                        st.session_state.user_id = user['localId']
+                        st.session_state.user_token = user['idToken']
+                        st.session_state.user_email = email
+                        
+                        st.success("Registration successful! You are now logged in.")
+                        
+                        # Save user data to Firestore
+                        user_data = {
+                            "email": email,
+                            "display_name": display_name if display_name else email.split('@')[0],
+                            "created_at": datetime.now().isoformat(),
+                            "last_login": datetime.now().isoformat()
+                        }
+                        save_to_firestore("users", user['localId'], user_data)
+                        
+                        st.rerun()
 
 # Main application
 def main_app():
     # Sidebar for navigation
-    st.sidebar.title(f"Welcome, {st.session_state.username}")
+    if 'user_id' in st.session_state:
+        welcome_name = st.session_state.username
+        st.sidebar.title(f"Welcome, {welcome_name}")
+        
+        # User account info
+        with st.sidebar.expander("Account Info"):
+            st.write(f"Email: {st.session_state.get('user_email', 'Not available')}")
+            st.write(f"User ID: {st.session_state.user_id}")
+    else:
+        st.sidebar.title(f"Welcome, {st.session_state.username}")
     
     # Log out button
     if st.sidebar.button("Log Out"):
-        st.session_state.authenticated = False
-        st.session_state.username = ""
+        for key in ['authenticated', 'username', 'user_id', 'user_token', 'user_email']:
+            if key in st.session_state:
+                del st.session_state[key]
         st.rerun()
     
     # Main navigation
     page = st.sidebar.selectbox(
         "Navigation",
-        ["Home", "Data Upload", "Data Visualization", "Sales Prediction", "About"]
+        ["Home", "Data Upload", "Data Visualization", "Sales Prediction", "My Models", "About"]
     )
     
     if page == "Home":
@@ -113,6 +191,8 @@ def main_app():
         data_visualization_page()
     elif page == "Sales Prediction":
         sales_prediction_page()
+    elif page == "My Models":
+        my_models_page()
     elif page == "About":
         about_page()
 
@@ -427,7 +507,19 @@ def sales_prediction_page():
                     'y_test': y_test
                 }
                 
-                st.success("Model trained successfully!")
+                # Save model metadata to Firestore if user is authenticated
+                if 'user_id' in st.session_state:
+                    model_name = f"{model_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                    
+                    # Save model to Firebase Storage
+                    model_url = save_model_to_firebase(model, model_name, st.session_state.user_id)
+                    
+                    if model_url:
+                        st.success(f"Model trained and saved successfully! You can access it in My Models.")
+                    else:
+                        st.success("Model trained successfully! (Model could not be saved to cloud storage)")
+                else:
+                    st.success("Model trained successfully!")
                 
                 # Display model metrics
                 st.subheader("Model Performance Metrics")
@@ -525,6 +617,74 @@ def sales_prediction_page():
                              caption="Retail Trends", use_column_width=True)
     else:
         st.info("Please train a model first.")
+
+# My Models page
+def my_models_page():
+    st.title("My Models")
+    
+    if 'user_id' not in st.session_state:
+        st.warning("Please log in to view your models")
+        return
+        
+    st.subheader("Saved Models")
+    
+    # Get user's models from Firestore
+    user_models = get_from_firestore("models", query=("user_id", "==", st.session_state.user_id))
+    
+    if not user_models:
+        st.info("You haven't saved any models yet. Train a model in the Sales Prediction page.")
+        return
+    
+    # Display models in a table
+    models_data = []
+    for model in user_models:
+        # Extract model data
+        model_name = model.get("name", "Unknown")
+        created_at = model.get("created_at", "Unknown date")
+        if isinstance(created_at, str):
+            created_at_display = created_at
+        else:
+            # Handle Firestore timestamp
+            try:
+                created_at_display = created_at.strftime("%Y-%m-%d %H:%M:%S")
+            except:
+                created_at_display = str(created_at)
+                
+        models_data.append({
+            "Model Name": model_name,
+            "Created At": created_at_display,
+            "Type": model_name.split('_')[0] if '_' in model_name else "Unknown"
+        })
+    
+    # Convert to DataFrame for display
+    if models_data:
+        models_df = pd.DataFrame(models_data)
+        st.dataframe(models_df)
+        
+        # Model selection for loading
+        selected_model = st.selectbox(
+            "Select a model to load", 
+            [model["Model Name"] for model in models_data]
+        )
+        
+        if st.button("Load Model"):
+            with st.spinner("Loading model..."):
+                # Load model from Firebase Storage
+                model = load_model_from_firebase(selected_model, st.session_state.user_id)
+                
+                if model:
+                    st.session_state.model = {
+                        'model': model,
+                        'model_type': selected_model.split('_')[0] if '_' in selected_model else "Unknown",
+                        'metrics': None,  # We don't have metrics for loaded models
+                        'X_test': None,
+                        'y_test': None
+                    }
+                    
+                    st.success(f"Model '{selected_model}' loaded successfully!")
+                    st.info("You can now use this model in the Sales Prediction page.")
+                else:
+                    st.error("Failed to load the model. Please try again.")
 
 # About page
 def about_page():
