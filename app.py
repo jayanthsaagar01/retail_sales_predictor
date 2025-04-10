@@ -29,18 +29,30 @@ from utils.firebase_config import (
     save_model_to_firebase,
     load_model_from_firebase
 )
-from utils.database import (
-    init_db, 
-    save_sales_data, 
-    save_weather_data, 
-    save_sentiment_data,
-    load_sales_data, 
-    load_weather_data, 
-    load_sentiment_data,
-    save_user, 
-    save_model_metadata, 
-    get_user_models, 
-    has_data
+# Optional import for database (PostgreSQL) functionality (commented out)
+# from utils.database import (
+#     init_db, 
+#     save_sales_data, 
+#     save_weather_data, 
+#     save_sentiment_data,
+#     load_sales_data, 
+#     load_weather_data, 
+#     load_sentiment_data,
+#     save_user, 
+#     save_model_metadata, 
+#     get_user_models, 
+#     has_data
+# )
+
+# Import Firebase storage module (replaces database module)
+from utils.firebase_storage import (
+    save_sales_data_to_firebase,
+    load_sales_data_from_firebase,
+    save_weather_data_to_firebase,
+    load_weather_data_from_firebase,
+    save_sentiment_data_to_firebase,
+    load_sentiment_data_from_firebase,
+    has_firebase_data
 )
 
 # Set page configuration
