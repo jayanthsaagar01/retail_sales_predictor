@@ -288,6 +288,13 @@ def data_upload_page():
             st.subheader("Summary Statistics")
             st.dataframe(processed_data.describe())
             
+            # Save to database
+            with st.spinner("Saving data to database..."):
+                if save_sales_data(processed_data):
+                    st.success("Sales data saved to database successfully!")
+                else:
+                    st.warning("Data is available in memory but could not be saved to database.")
+            
         except Exception as e:
             st.error(f"Error processing file: {e}")
     
@@ -319,7 +326,11 @@ def data_upload_page():
                 weather_data = get_weather_data(location, start_date, end_date)
                 st.session_state.weather_data = weather_data
                 
-                st.success("Weather data fetched successfully!")
+                # Save weather data to database
+                if save_weather_data(weather_data, location):
+                    st.success("Weather data fetched and saved to database successfully!")
+                else:
+                    st.success("Weather data fetched successfully!")
                 
                 # Display sample weather data
                 st.subheader("Sample Weather Data")
@@ -331,7 +342,11 @@ def data_upload_page():
                 sentiment_data = analyze_sentiment(keywords, start_date, end_date)
                 st.session_state.sentiment_data = sentiment_data
                 
-                st.success("Sentiment analysis completed!")
+                # Save sentiment data to database
+                if save_sentiment_data(sentiment_data, keywords):
+                    st.success("Sentiment analysis completed and saved to database!")
+                else:
+                    st.success("Sentiment analysis completed!")
                 
                 # Display sample sentiment data
                 st.subheader("Sample Sentiment Data")
@@ -520,12 +535,21 @@ def sales_prediction_page():
                     'y_test': y_test
                 }
                 
-                # Save model metadata to Firestore if user is authenticated
+                # Save model metadata if user is authenticated
                 if 'user_id' in st.session_state:
                     model_name = f"{model_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                     
                     # Save model to Firebase Storage
                     model_url = save_model_to_firebase(model, model_name, st.session_state.user_id)
+                    
+                    # Save to PostgreSQL database
+                    save_model_metadata(
+                        name=model_name,
+                        user_id=st.session_state.user_id,
+                        model_type=model_type,
+                        metrics=metrics,
+                        storage_path=model_url
+                    )
                     
                     if model_url:
                         st.success(f"Model trained and saved successfully! You can access it in My Models.")
@@ -641,8 +665,14 @@ def my_models_page():
         
     st.subheader("Saved Models")
     
-    # Get user's models from Firestore
-    user_models = get_from_firestore("models", query=("user_id", "==", st.session_state.user_id))
+    # Get user's models from PostgreSQL database
+    db_models = get_user_models(st.session_state.user_id)
+    
+    # Also get models from Firestore for backward compatibility
+    firebase_models = get_from_firestore("models", query=("user_id", "==", st.session_state.user_id))
+    
+    # Combine models from both sources
+    user_models = db_models + firebase_models if firebase_models else db_models
     
     if not user_models:
         st.info("You haven't saved any models yet. Train a model in the Sales Prediction page.")
@@ -727,8 +757,12 @@ def about_page():
     - **Frontend**: Streamlit
     - **Data Processing**: Pandas, NumPy
     - **Machine Learning**: Scikit-learn
-    - **Data Visualization**: Matplotlib, Plotly
-    - **NLP**: NLTK for sentiment analysis
+    - **Data Visualization**: Matplotlib, Seaborn
+    - **NLP**: TextBlob for sentiment analysis
+    - **Database**: PostgreSQL for persistent storage
+    - **Authentication**: Firebase Authentication
+    - **Cloud Storage**: Firebase Storage for model storage
+    - **APIs**: OpenWeatherMap for weather data
     
     ### Contact Information
     
