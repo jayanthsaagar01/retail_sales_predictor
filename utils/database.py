@@ -99,6 +99,29 @@ def save_sales_data(sales_df):
     try:
         session = get_session()
         
+        # Check if the DataFrame has the required columns
+        required_columns = ['Product_ID', 'Category', 'Price']
+        missing_columns = [col for col in required_columns if col not in sales_df.columns]
+        
+        if missing_columns:
+            # Try to find equivalent columns with different casing
+            column_mapping = {}
+            for missing_col in missing_columns:
+                for col in sales_df.columns:
+                    if col.lower() == missing_col.lower():
+                        column_mapping[col] = missing_col
+                        
+            # Apply column mapping if found
+            if column_mapping:
+                sales_df = sales_df.rename(columns=column_mapping)
+                
+            # Check again for missing columns
+            missing_columns = [col for col in required_columns if col not in sales_df.columns]
+            
+            if missing_columns:
+                # Still missing columns, raise an error
+                raise ValueError(f"Required columns missing: {missing_columns}")
+        
         # Extract unique products
         products_df = sales_df[['Product_ID', 'Category', 'Price']].drop_duplicates()
         products_df = products_df.rename(columns={
@@ -113,6 +136,35 @@ def save_sales_data(sales_df):
         # Save products
         products_df.to_sql('products', engine, if_exists='append', index=False, 
                           method='multi', chunksize=1000)
+        
+        # Check for additional required columns
+        sales_required_columns = ['Date', 'Product_ID', 'Quantity', 'Total_Sales']
+        sales_missing_columns = [col for col in sales_required_columns if col not in sales_df.columns]
+        
+        if sales_missing_columns:
+            # Try to find equivalent columns with different casing
+            sales_column_mapping = {}
+            for missing_col in sales_missing_columns:
+                for col in sales_df.columns:
+                    if col.lower() == missing_col.lower():
+                        sales_column_mapping[col] = missing_col
+                        
+            # Apply column mapping if found
+            if sales_column_mapping:
+                sales_df = sales_df.rename(columns=sales_column_mapping)
+                
+            # Check again for missing columns
+            sales_missing_columns = [col for col in sales_required_columns if col not in sales_df.columns]
+            
+            if sales_missing_columns:
+                # Calculate missing columns if possible
+                if 'Total_Sales' in sales_missing_columns and 'Price' in sales_df.columns and 'Quantity' in sales_df.columns:
+                    sales_df['Total_Sales'] = sales_df['Price'] * sales_df['Quantity']
+                    sales_missing_columns.remove('Total_Sales')
+                
+                # If still missing columns, raise an error
+                if sales_missing_columns:
+                    raise ValueError(f"Required columns missing for sales data: {sales_missing_columns}")
         
         # Prepare sales data
         sales_data = sales_df[['Date', 'Product_ID', 'Quantity', 'Total_Sales']]
@@ -161,6 +213,31 @@ def save_weather_data(weather_df, location):
         # Prepare weather data
         weather_data = weather_df.copy()
         weather_data['location'] = location
+        
+        # Check if required columns exist
+        weather_required_columns = ['Date', 'Temperature', 'Precipitation', 'Weather_Condition']
+        weather_missing_columns = [col for col in weather_required_columns if col not in weather_data.columns]
+        
+        if weather_missing_columns:
+            # Try to find equivalent columns with different casing
+            weather_column_mapping = {}
+            for missing_col in weather_missing_columns:
+                for col in weather_data.columns:
+                    if col.lower() == missing_col.lower():
+                        weather_column_mapping[col] = missing_col
+                        
+            # Apply column mapping if found
+            if weather_column_mapping:
+                weather_data = weather_data.rename(columns=weather_column_mapping)
+                
+            # Check again for missing columns
+            weather_missing_columns = [col for col in weather_required_columns if col not in weather_data.columns]
+            
+            if weather_missing_columns:
+                # If still missing columns, raise an error
+                raise ValueError(f"Required columns missing for weather data: {weather_missing_columns}")
+        
+        # Rename columns for database format
         weather_data = weather_data.rename(columns={
             'Date': 'date',
             'Temperature': 'temperature',
@@ -206,6 +283,31 @@ def save_sentiment_data(sentiment_df, keywords):
         # Prepare sentiment data
         sentiment_data = sentiment_df.copy()
         sentiment_data['keywords'] = ','.join(keywords)
+        
+        # Check if required columns exist
+        sentiment_required_columns = ['Date', 'Sentiment_Score', 'Positive_Count', 'Negative_Count', 'Neutral_Count']
+        sentiment_missing_columns = [col for col in sentiment_required_columns if col not in sentiment_data.columns]
+        
+        if sentiment_missing_columns:
+            # Try to find equivalent columns with different casing
+            sentiment_column_mapping = {}
+            for missing_col in sentiment_missing_columns:
+                for col in sentiment_data.columns:
+                    if col.lower() == missing_col.lower():
+                        sentiment_column_mapping[col] = missing_col
+                        
+            # Apply column mapping if found
+            if sentiment_column_mapping:
+                sentiment_data = sentiment_data.rename(columns=sentiment_column_mapping)
+                
+            # Check again for missing columns
+            sentiment_missing_columns = [col for col in sentiment_required_columns if col not in sentiment_data.columns]
+            
+            if sentiment_missing_columns:
+                # If still missing columns, raise an error
+                raise ValueError(f"Required columns missing for sentiment data: {sentiment_missing_columns}")
+        
+        # Rename columns for database format
         sentiment_data = sentiment_data.rename(columns={
             'Date': 'date',
             'Sentiment_Score': 'sentiment_score',
