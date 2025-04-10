@@ -111,8 +111,12 @@ def combine_datasets(sales_df, weather_df, sentiment_df):
         else:
             # Handle mode() differently to avoid list/scalar error
             mode_value = "Unknown"
-            if not combined_df[col].mode().empty:
-                mode_value = combined_df[col].mode().iloc[0]
+            mode_series = combined_df[col].mode()
+            if not mode_series.empty:
+                mode_value = mode_series.iloc[0]
+            # Ensure mode_value is a scalar, not a list or series
+            if isinstance(mode_value, (list, pd.Series)):
+                mode_value = mode_value[0] if len(mode_value) > 0 else "Unknown"
             combined_df[col] = combined_df[col].fillna(mode_value)
     
     # Add day of week feature
