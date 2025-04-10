@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import os
 import base64
 from io import StringIO
+import json
+import requests
 
 # Import custom modules
 from utils.data_processing import process_sales_data, combine_datasets
@@ -19,6 +21,14 @@ from utils.visualization import (
 from utils.model import train_model, predict_sales
 from utils.sentiment_analysis import analyze_sentiment
 from utils.weather_api import get_weather_data
+from utils.firebase_config import (
+    firebase_authenticate,
+    firebase_register_user,
+    save_to_firestore,
+    get_from_firestore,
+    save_model_to_firebase,
+    load_model_from_firebase
+)
 
 # Set page configuration
 st.set_page_config(

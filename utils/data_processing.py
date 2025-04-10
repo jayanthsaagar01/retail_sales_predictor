@@ -109,7 +109,11 @@ def combine_datasets(sales_df, weather_df, sentiment_df):
         if combined_df[col].dtype == 'float64' or combined_df[col].dtype == 'int64':
             combined_df[col] = combined_df[col].fillna(combined_df[col].mean())
         else:
-            combined_df[col] = combined_df[col].fillna(combined_df[col].mode()[0] if not combined_df[col].mode().empty else "Unknown")
+            # Handle mode() differently to avoid list/scalar error
+            mode_value = "Unknown"
+            if not combined_df[col].mode().empty:
+                mode_value = combined_df[col].mode().iloc[0]
+            combined_df[col] = combined_df[col].fillna(mode_value)
     
     # Add day of week feature
     combined_df['DayOfWeek'] = combined_df['Date'].dt.dayofweek
