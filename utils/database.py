@@ -259,6 +259,10 @@ def load_sales_data():
         
         # Load data into DataFrame
         sales_df = pd.read_sql(query, engine)
+        
+        # Ensure proper date formatting
+        sales_df['Date'] = pd.to_datetime(sales_df['Date']).dt.date
+        
         return sales_df
     except Exception as e:
         st.error(f"Error loading sales data: {e}")
@@ -289,6 +293,10 @@ def load_weather_data():
         
         # Load data into DataFrame
         weather_df = pd.read_sql(query, engine)
+        
+        # Ensure proper date formatting
+        weather_df['Date'] = pd.to_datetime(weather_df['Date']).dt.date
+        
         return weather_df
     except Exception as e:
         st.error(f"Error loading weather data: {e}")
@@ -320,6 +328,10 @@ def load_sentiment_data():
         
         # Load data into DataFrame
         sentiment_df = pd.read_sql(query, engine)
+        
+        # Ensure proper date formatting
+        sentiment_df['Date'] = pd.to_datetime(sentiment_df['Date']).dt.date
+        
         return sentiment_df
     except Exception as e:
         st.error(f"Error loading sentiment data: {e}")
