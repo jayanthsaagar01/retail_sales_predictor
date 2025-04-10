@@ -29,6 +29,19 @@ from utils.firebase_config import (
     save_model_to_firebase,
     load_model_from_firebase
 )
+from utils.database import (
+    init_db, 
+    save_sales_data, 
+    save_weather_data, 
+    save_sentiment_data,
+    load_sales_data, 
+    load_weather_data, 
+    load_sentiment_data,
+    save_user, 
+    save_model_metadata, 
+    get_user_models, 
+    has_data
+)
 
 # Set page configuration
 st.set_page_config(
