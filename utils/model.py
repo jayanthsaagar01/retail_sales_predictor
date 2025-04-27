@@ -94,9 +94,23 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
 
         # Select model
         if model_type == "XGBoost":
-            model = XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
+            model = XGBRegressor(
+                n_estimators=100,
+                learning_rate=0.05,
+                max_depth=6,
+                min_child_weight=1,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                random_state=42
+            )
         else:  # Random Forest
-            model = RandomForestRegressor(n_estimators=100, random_state=42)
+            model = RandomForestRegressor(
+                n_estimators=100,
+                max_depth=10,
+                min_samples_split=5,
+                min_samples_leaf=2,
+                random_state=42
+            )
 
         # Create pipeline
         pipeline = Pipeline([
