@@ -60,9 +60,14 @@ class Model(Base):
     model_data = Column(String)  # Serialized model data
     created_at = Column(Date, default=datetime.datetime.now)
 
+def create_tables():
+    """Drop all tables and create them again"""
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+
 def init_db():
     """Create all tables in the database"""
-    Base.metadata.create_all(engine)
+    create_tables()
 
 def get_session():
     """Get a new database session"""
