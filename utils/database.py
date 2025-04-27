@@ -295,3 +295,33 @@ def get_user_models(user_id):
         } for model in models]
     finally:
         session.close()
+
+def save_model_metadata(model, model_name, user_id, metrics):
+    """Save model metadata to database"""
+    session = get_session()
+    try:
+        # Serialize model data using joblib
+        import joblib
+        import io
+        import base64
+
+        # Serialize model to base64 string
+        buffer = io.BytesIO()
+        joblib.dump(model, buffer)
+        model_data = base64.b64encode(buffer.getvalue()).decode()
+
+        model_record = Model(
+            name=model_name,
+            user_id=user_id,
+            type=model_name.split('_')[0],
+            metrics=json.dumps(metrics) if metrics else None,
+            model_data=model_data
+        )
+        session.add(model_record)
+        session.commit()
+        return True
+    except Exception as e:
+        session.rollback()
+        return False
+    finally:
+        session.close()
