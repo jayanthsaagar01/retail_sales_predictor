@@ -68,6 +68,8 @@ def authenticate(email, password):
 
 # Login page
 def login_page():
+    # Initialize database tables
+    init_db()
     st.title("📊 Sales Prediction Dashboard")
 
     col1, col2 = st.columns([1, 1])
