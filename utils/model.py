@@ -36,7 +36,7 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
         from pmdarima import auto_arima
         # For ARIMA, we only need the time series data
         time_series = df.groupby('Date')['Total_Sales'].sum().sort_index()
-        model = auto_arima(time_series,
+        model = auto_arima(time_series, seasonal=True, suppress_warnings=True)
                           start_p=1, start_q=1,
                           max_p=3, max_q=3,
                           m=7,  # Weekly seasonality
@@ -128,13 +128,15 @@ def predict_sales(model, prediction_data, historical_data):
         for col in missing_cols:
             if col in historical_data.columns:
                 if historical_data[col].dtype == 'object':
-                    # Repeat the mode value for each row in pred_df
-                    pred_df[col] = [historical_data[col].mode()[0]] * len(pred_df)
+                    # Convert list values to string if needed
+                    if col == 'Weather_Condition':
+                        pred_df[col] = pred_df[col].apply(lambda x: x if isinstance(x, str) else str(x))
+                    else:
+                        pred_df[col] = historical_data[col].mode()[0]
                 else:
-                    # Repeat the mean value for each row in pred_df
-                    pred_df[col] = [historical_data[col].mean()] * len(pred_df)
+                    pred_df[col] = historical_data[col].mean()
             else:
-                pred_df[col] = [0] * len(pred_df)  # Fill with zeros for all rows
+                pred_df[col] = 0
 
 
         predictions = model.predict(pred_df)
