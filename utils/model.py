@@ -95,20 +95,20 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
         # Select model
         if model_type == "XGBoost":
             model = XGBRegressor(
-                n_estimators=100,
-                learning_rate=0.05,
-                max_depth=6,
-                min_child_weight=1,
-                subsample=0.8,
-                colsample_bytree=0.8,
+                n_estimators=50,
+                learning_rate=0.01,
+                max_depth=4,
+                min_child_weight=2,
+                subsample=0.7,
+                colsample_bytree=0.7,
                 random_state=42
             )
         else:  # Random Forest
             model = RandomForestRegressor(
-                n_estimators=100,
-                max_depth=10,
-                min_samples_split=5,
-                min_samples_leaf=2,
+                n_estimators=50,
+                max_depth=6,
+                min_samples_split=10,
+                min_samples_leaf=4,
                 random_state=42
             )
 

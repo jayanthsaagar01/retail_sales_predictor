@@ -76,7 +76,7 @@ def login_page():
 
     with col1:
         st.image("https://images.unsplash.com/photo-1542744173-05336fcc7ad4", 
-                 caption="Data Visualization Dashboard", use_column_width=True)
+                 caption="Data Visualization Dashboard", use_container_width=True)
 
     with col2:
         # Create tabs for login and registration
@@ -198,7 +198,7 @@ def home_page():
 
     with col1:
         st.image("https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3", 
-                 caption="Sales Analysis", use_column_width=True)
+                 caption="Sales Analysis", use_container_width=True)
 
     with col2:
         st.image("https://images.unsplash.com/photo-1560472354-b33ff0c44a43", 
