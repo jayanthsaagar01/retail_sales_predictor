@@ -309,6 +309,11 @@ def save_model_metadata(model, model_name, user_id, metrics):
         import joblib
         import io
         import base64
+        from datetime import datetime
+
+        # Create a unique model name with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_model_name = f"{model_name}_{timestamp}"
 
         # Serialize model to base64 string
         buffer = io.BytesIO()

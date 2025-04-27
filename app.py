@@ -190,7 +190,7 @@ def home_page():
 
     with col2:
         st.image("https://images.unsplash.com/photo-1551288049-bebda4e38f71", 
-                 caption="Data Analysis Dashboard", use_column_width=True)
+                 caption="Data Analysis Dashboard", use_container_width=True)
 
     # Display dashboard images in grid
     st.subheader("Dashboard Previews")
@@ -202,15 +202,15 @@ def home_page():
 
     with col2:
         st.image("https://images.unsplash.com/photo-1560472354-b33ff0c44a43", 
-                 caption="Performance Metrics", use_column_width=True)
+                 caption="Performance Metrics", use_container_width=True)
 
     with col3:
         st.image("https://images.unsplash.com/photo-1559526324-4b87b5e36e44", 
-                 caption="Sales Prediction", use_column_width=True)
+                 caption="Sales Prediction", use_container_width=True)
 
     with col4:
         st.image("https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a", 
-                 caption="Sentiment Analysis", use_column_width=True)
+                 caption="Sentiment Analysis", use_container_width=True)
 
 # Data Upload page
 def data_upload_page():
@@ -397,19 +397,19 @@ def data_visualization_page():
 
         with col1:
             st.image("https://images.unsplash.com/photo-1531789694268-03cfe5989f89", 
-                     caption="Sunny", use_column_width=True)
+                     caption="Sunny", use_container_width=True)
 
         with col2:
             st.image("https://images.unsplash.com/photo-1697525994215-0fadc6c2c593", 
-                     caption="Rainy", use_column_width=True)
+                     caption="Rainy", use_container_width=True)
 
         with col3:
             st.image("https://images.unsplash.com/photo-1640704124529-3921034f491e", 
-                     caption="Snowy", use_column_width=True)
+                     caption="Snowy", use_container_width=True)
 
         with col4:
             st.image("https://images.unsplash.com/photo-1605028262919-f90a57bf6812", 
-                     caption="Cloudy", use_column_width=True)
+                     caption="Cloudy", use_container_width=True)
 
     with tab3:
         st.subheader("Social Media Sentiment Impact")
@@ -423,15 +423,15 @@ def data_visualization_page():
 
         with col1:
             st.image("https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a", 
-                     caption="Positive Sentiment", use_column_width=True)
+                     caption="Positive Sentiment", use_container_width=True)
 
         with col2:
             st.image("https://images.unsplash.com/photo-1455849318743-b2233052fcff", 
-                     caption="Neutral Sentiment", use_column_width=True)
+                     caption="Neutral Sentiment", use_container_width=True)
 
         with col3:
             st.image("https://images.unsplash.com/photo-1496449903678-68ddcb189a24", 
-                     caption="Negative Sentiment", use_column_width=True)
+                     caption="Negative Sentiment", use_container_width=True)
 
     with tab4:
         st.subheader("Correlation Analysis")
@@ -518,7 +518,7 @@ def sales_prediction_page():
 
     with col2:
         st.image("https://images.unsplash.com/photo-1559526324-4b87b5e36e44", 
-                 caption="Sales Prediction", use_column_width=True)
+                 caption="Sales Prediction", use_container_width=True)
 
     st.subheader("Make Predictions")
 
@@ -587,15 +587,15 @@ def sales_prediction_page():
 
                 with col1:
                     st.image("https://images.unsplash.com/photo-1559526324-4b87b5e36e44", 
-                             caption="Sales Forecast", use_column_width=True)
+                             caption="Sales Forecast", use_container_width=True)
 
                 with col2:
                     st.image("https://images.unsplash.com/photo-1527264935190-1401c51b5bbc", 
-                             caption="Business Growth", use_column_width=True)
+                             caption="Business Growth", use_container_width=True)
 
                 with col3:
                     st.image("https://images.unsplash.com/photo-1576748872293-f4972ceda096", 
-                             caption="Retail Trends", use_column_width=True)
+                             caption="Retail Trends", use_container_width=True)
     else:
         st.info("Please train a model first.")
 
