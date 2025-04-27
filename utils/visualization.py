@@ -31,7 +31,7 @@ def plot_sales_trend(data):
 
     ax.set_title('Sales Trends by Product Category', fontsize=16)
     ax.set_xlabel('Date', fontsize=12)
-    ax.set_ylabel('Total Sales ($)', fontsize=12)
+    ax.set_ylabel('Total Sales (₹)', fontsize=12)
     ax.grid(True, alpha=0.3)
     ax.legend(title='Category')
 
@@ -125,7 +125,7 @@ def plot_weather_impact(data, weather_metric='Temperature'):
 
         ax.set_title('Average Sales by Temperature Range', fontsize=16)
         ax.set_xlabel('Temperature Range', fontsize=12)
-        ax.set_ylabel('Average Sales ($)', fontsize=12)
+        ax.set_ylabel('Average Sales (₹)', fontsize=12)
 
     elif weather_metric == 'Precipitation':
         # Group data by precipitation ranges
@@ -146,7 +146,7 @@ def plot_weather_impact(data, weather_metric='Temperature'):
 
         ax.set_title('Average Sales by Precipitation', fontsize=16)
         ax.set_xlabel('Precipitation Range', fontsize=12)
-        ax.set_ylabel('Average Sales ($)', fontsize=12)
+        ax.set_ylabel('Average Sales (₹)', fontsize=12)
 
     elif weather_metric == 'Weather_Condition':
         # Calculate average sales by weather condition and category
@@ -160,7 +160,7 @@ def plot_weather_impact(data, weather_metric='Temperature'):
 
         ax.set_title('Average Sales by Weather Condition', fontsize=16)
         ax.set_xlabel('Weather Condition', fontsize=12)
-        ax.set_ylabel('Average Sales ($)', fontsize=12)
+        ax.set_ylabel('Average Sales (₹)', fontsize=12)
 
     ax.grid(True, alpha=0.3, axis='y')
     ax.legend(title='Category')
@@ -203,7 +203,7 @@ def plot_sentiment_impact(data):
 
     ax.set_title('Average Sales by Sentiment Score', fontsize=16)
     ax.set_xlabel('Sentiment Range', fontsize=12)
-    ax.set_ylabel('Average Sales ($)', fontsize=12)
+    ax.set_ylabel('Average Sales (₹)', fontsize=12)
     ax.grid(True, alpha=0.3, axis='y')
     ax.legend(title='Category')
 
@@ -277,7 +277,7 @@ def plot_sales_forecast(historical_data, predicted_data):
 
     ax.set_title('Sales Forecast', fontsize=16)
     ax.set_xlabel('Date', fontsize=12)
-    ax.set_ylabel('Total Sales ($)', fontsize=12)
+    ax.set_ylabel('Total Sales (₹)', fontsize=12)
     ax.grid(True, alpha=0.3)
     ax.legend()
 

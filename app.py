@@ -367,11 +367,11 @@ def data_visualization_page():
 
             with col1:
                 total_sales = filtered_data['Total_Sales'].sum()
-                st.metric("Total Sales", f"${total_sales:,.2f}")
+                st.metric("Total Sales", f"₹{total_sales:,.2f}")
 
             with col2:
                 avg_sales = filtered_data['Total_Sales'].mean()
-                st.metric("Average Daily Sales", f"${avg_sales:,.2f}")
+                st.metric("Average Daily Sales", f"₹{avg_sales:,.2f}")
 
             with col3:
                 growth = filtered_data.groupby('Date')['Total_Sales'].sum().pct_change().mean() * 100

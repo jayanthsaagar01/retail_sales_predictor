@@ -163,11 +163,14 @@ def predict_sales(model, prediction_data, historical_data):
         # Fill missing columns with appropriate values
         for col in missing_cols:
             if col in historical_data.columns:
-                if historical_data[col].dtype == 'object':
+                if pd.api.types.is_categorical_dtype(historical_data[col]):
+                    mode_val = str(historical_data[col].mode().iloc[0])
+                    pred_df[col] = mode_val
+                elif historical_data[col].dtype == 'object':
                     mode_val = str(historical_data[col].mode().iloc[0])
                     pred_df[col] = mode_val
                 else:
-                    mean_val = historical_data[col].mean()
+                    mean_val = float(historical_data[col].astype(float).mean())
                     pred_df[col] = mean_val
             else:
                 pred_df[col] = 0
