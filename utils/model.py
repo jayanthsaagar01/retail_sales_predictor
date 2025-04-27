@@ -36,16 +36,20 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
         from pmdarima import auto_arima
         # For ARIMA, we only need the time series data
         time_series = df.groupby('Date')['Total_Sales'].sum().sort_index()
-        model = auto_arima(time_series, seasonal=True, suppress_warnings=True)
-                          start_p=1, start_q=1,
-                          max_p=3, max_q=3,
-                          m=7,  # Weekly seasonality
-                          start_P=0, seasonal=True,
-                          d=1, D=1,
-                          trace=True,
-                          error_action='ignore',
-                          suppress_warnings=True,
-                          stepwise=True)
+        model = auto_arima(time_series,
+                    start_p=1,
+                    start_q=1,
+                    max_p=3,
+                    max_q=3,
+                    m=7,  # Weekly seasonality
+                    start_P=0,
+                    seasonal=True,
+                    d=1,
+                    D=1,
+                    trace=True,
+                    error_action='ignore',
+                    suppress_warnings=True,
+                    stepwise=True)
 
         # Split data for evaluation
         train_size = int(len(time_series) * (1 - test_size))
