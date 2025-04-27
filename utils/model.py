@@ -132,13 +132,13 @@ def predict_sales(model, prediction_data, historical_data):
         for col in missing_cols:
             if col in historical_data.columns:
                 if historical_data[col].dtype == 'object':
-                    # Convert list values to string if needed
-                    if col == 'Weather_Condition':
-                        pred_df[col] = pred_df[col].apply(lambda x: x if isinstance(x, str) else str(x))
-                    else:
-                        pred_df[col] = historical_data[col].mode()[0]
+                    # Get mode value for categorical data
+                    mode_val = historical_data[col].mode()[0]
+                    pred_df[col] = [mode_val] * len(pred_df)
                 else:
-                    pred_df[col] = historical_data[col].mean()
+                    # Get mean value for numerical data
+                    mean_val = historical_data[col].mean()
+                    pred_df[col] = [mean_val] * len(pred_df)
             else:
                 pred_df[col] = 0
 

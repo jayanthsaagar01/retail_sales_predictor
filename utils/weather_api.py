@@ -37,11 +37,11 @@ def get_weather_data(location, start_date, end_date):
     weather_data = []
     
     # Try to use a real weather API if API key is available
-    api_key = st.secrets.get("OPENWEATHERMAP_API_KEY", "")
+    api_key = "40f8eada0988a0fb5fcdd999b8fa3088"
     
     if api_key:
         try:
-            # If we have a weather API key, use the real API
+            # Use OpenWeatherMap API
             st.info("Using OpenWeatherMap API for weather data")
             
             # Get historical data for a sample of dates to limit API calls
