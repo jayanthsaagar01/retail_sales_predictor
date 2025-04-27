@@ -8,7 +8,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
-from pmdarima import auto_arima
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 import joblib
 from datetime import datetime, timedelta
@@ -30,6 +29,8 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
     df = preprocess_data(df)
     
     if model_type == "ARIMA":
+        # Import pmdarima only when needed
+        from pmdarima import auto_arima
         # For ARIMA, we only need the time series data
         time_series = df.groupby('Date')['Total_Sales'].sum().sort_index()
         model = auto_arima(time_series,
