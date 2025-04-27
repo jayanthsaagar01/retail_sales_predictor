@@ -1,16 +1,13 @@
 import os
 import pandas as pd
-from sqlalchemy import create_engine, Column, Integer, String, Float, Date, ForeignKey, Table, MetaData, text
+from sqlalchemy import create_engine, Column, Integer, String, Float, Date, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker
 import datetime
 import streamlit as st
 
-# Get database URL from environment variable
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-# Create SQLAlchemy engine and session
-engine = create_engine(DATABASE_URL)
+# Create SQLite engine and session
+engine = create_engine('sqlite:///sales_prediction.db')
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -135,7 +132,7 @@ def save_sales_data(sales_df):
         
         # Save products
         products_df.to_sql('products', engine, if_exists='append', index=False, 
-                          method='multi', chunksize=1000)
+                              method='multi', chunksize=1000)
         
         # Check for additional required columns
         sales_required_columns = ['Date', 'Product_ID', 'Quantity', 'Total_Sales']
@@ -180,8 +177,8 @@ def save_sales_data(sales_df):
         
         # Save sales data
         sales_data.to_sql('sales', engine, if_exists='append', index=False,
-                         method='multi', chunksize=1000)
-                         
+                             method='multi', chunksize=1000)
+                        
         session.commit()
         return True
     except Exception as e:
@@ -250,8 +247,8 @@ def save_weather_data(weather_df, location):
         
         # Save weather data
         weather_data.to_sql('weather', engine, if_exists='append', index=False,
-                           method='multi', chunksize=1000)
-                           
+                               method='multi', chunksize=1000)
+                        
         session.commit()
         return True
     except Exception as e:
@@ -321,8 +318,8 @@ def save_sentiment_data(sentiment_df, keywords):
         
         # Save sentiment data
         sentiment_data.to_sql('sentiment', engine, if_exists='append', index=False,
-                             method='multi', chunksize=1000)
-                             
+                                 method='multi', chunksize=1000)
+                        
         session.commit()
         return True
     except Exception as e:

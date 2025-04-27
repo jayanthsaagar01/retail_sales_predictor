@@ -3,13 +3,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-import os
-import base64
-from io import StringIO
 import json
-import requests
 
-# Import custom modules
+# Import only required modules
 from utils.data_processing import process_sales_data, combine_datasets
 from utils.visualization import (
     plot_sales_trend, 
@@ -21,38 +17,17 @@ from utils.visualization import (
 from utils.model import train_model, predict_sales
 from utils.sentiment_analysis import analyze_sentiment
 from utils.weather_api import get_weather_data
-from utils.firebase_config import (
-    firebase_authenticate,
-    firebase_register_user,
-    save_to_firestore,
-    get_from_firestore,
-    save_model_to_firebase,
-    load_model_from_firebase
-)
-# Optional import for database (PostgreSQL) functionality (commented out)
-# from utils.database import (
-#     init_db, 
-#     save_sales_data, 
-#     save_weather_data, 
-#     save_sentiment_data,
-#     load_sales_data, 
-#     load_weather_data, 
-#     load_sentiment_data,
-#     save_user, 
-#     save_model_metadata, 
-#     get_user_models, 
-#     has_data
-# )
-
-# Import Firebase storage module (replaces database module)
-from utils.firebase_storage import (
-    save_sales_data_to_firebase,
-    load_sales_data_from_firebase,
-    save_weather_data_to_firebase,
-    load_weather_data_from_firebase,
-    save_sentiment_data_to_firebase,
-    load_sentiment_data_from_firebase,
-    has_firebase_data
+from utils.database import (
+    init_db, 
+    save_sales_data, 
+    save_weather_data, 
+    save_sentiment_data,
+    load_sales_data, 
+    load_weather_data, 
+    load_sentiment_data,
+    save_model_metadata, 
+    get_user_models, 
+    has_data
 )
 
 # Set page configuration
@@ -81,42 +56,20 @@ if 'combined_data' not in st.session_state:
 if 'predictions' not in st.session_state:
     st.session_state.predictions = None
 
-# Authentication function using Firebase
+# Authentication function using local database (replace Firebase)
 def authenticate(email, password):
     """
-    Authenticate a user using Firebase Authentication
-    
-    Parameters:
-    -----------
-    email : str
-        User email
-    password : str
-        User password
-    
-    Returns:
-    --------
-    bool
-        True if authentication successful, False otherwise
+    Authenticate a user using local database.  Replace with your actual authentication logic.
     """
-    # Use Firebase authentication
-    user = firebase_authenticate(email, password)
-    
-    if user:
-        # Store user information in session state
-        st.session_state.user_id = user['localId']
-        st.session_state.user_token = user['idToken']
-        st.session_state.user_email = email
-        return True
-    
-    # If Firebase authentication fails or not configured, fall back to simple validation
-    # This is for development purposes only and should be removed in production
-    if "BYPASS_AUTH" in st.secrets and st.secrets["BYPASS_AUTH"] and email and password:
+    # Replace this with your actual database authentication logic
+    # For this example, we'll use a simple check.  This is for development only.
+    if "BYPASS_AUTH" in st.secrets and st.secrets["BYPASS_AUTH"] and email == "test@example.com" and password == "password":
         st.session_state.user_id = "test_user"
         st.session_state.user_token = "test_token"
         st.session_state.user_email = email
         return True
-        
     return False
+
 
 # Login page
 def login_page():
@@ -159,27 +112,14 @@ def login_page():
                 elif len(password) < 6:
                     st.error("Password must be at least 6 characters")
                 else:
-                    # Register user with Firebase
-                    user = firebase_register_user(email, password, display_name)
-                    if user:
-                        st.session_state.authenticated = True
-                        st.session_state.username = display_name if display_name else email.split('@')[0]
-                        st.session_state.user_id = user['localId']
-                        st.session_state.user_token = user['idToken']
-                        st.session_state.user_email = email
-                        
-                        st.success("Registration successful! You are now logged in.")
-                        
-                        # Save user data to Firestore
-                        user_data = {
-                            "email": email,
-                            "display_name": display_name if display_name else email.split('@')[0],
-                            "created_at": datetime.now().isoformat(),
-                            "last_login": datetime.now().isoformat()
-                        }
-                        save_to_firestore("users", user['localId'], user_data)
-                        
-                        st.rerun()
+                    # Placeholder for user registration in local database
+                    # Replace with your database registration logic
+                    st.session_state.authenticated = True
+                    st.session_state.username = display_name if display_name else email.split('@')[0]
+                    st.session_state.user_id = "test_user" # Replace with actual ID from database
+                    st.session_state.user_email = email
+                    st.success("Registration successful! You are now logged in.")
+                    st.rerun()
 
 # Main application
 def main_app():
@@ -300,13 +240,13 @@ def data_upload_page():
             st.subheader("Summary Statistics")
             st.dataframe(processed_data.describe())
             
-            # Save to Firebase
-            with st.spinner("Saving data to Firebase..."):
+            # Save to database
+            with st.spinner("Saving data to database..."):
                 user_id = st.session_state.get('user_id', None)
-                if save_sales_data_to_firebase(processed_data, user_id):
-                    st.success("Sales data saved to Firebase successfully!")
+                if save_sales_data(processed_data, user_id):
+                    st.success("Sales data saved to database successfully!")
                 else:
-                    st.warning("Data is available in memory but could not be saved to Firebase.")
+                    st.warning("Data is available in memory but could not be saved to database.")
             
         except Exception as e:
             st.error(f"Error processing file: {e}")
@@ -339,10 +279,10 @@ def data_upload_page():
                 weather_data = get_weather_data(location, start_date, end_date)
                 st.session_state.weather_data = weather_data
                 
-                # Save weather data to Firebase
+                # Save weather data to database
                 user_id = st.session_state.get('user_id', None)
-                if save_weather_data_to_firebase(weather_data, location, user_id):
-                    st.success("Weather data fetched and saved to Firebase successfully!")
+                if save_weather_data(weather_data, location, user_id):
+                    st.success("Weather data fetched and saved to database successfully!")
                 else:
                     st.success("Weather data fetched successfully!")
                 
@@ -356,10 +296,10 @@ def data_upload_page():
                 sentiment_data = analyze_sentiment(keywords, start_date, end_date)
                 st.session_state.sentiment_data = sentiment_data
                 
-                # Save sentiment data to Firebase
+                # Save sentiment data to database
                 user_id = st.session_state.get('user_id', None)
-                if save_sentiment_data_to_firebase(sentiment_data, keywords, user_id):
-                    st.success("Sentiment analysis completed and saved to Firebase!")
+                if save_sentiment_data(sentiment_data, keywords, user_id):
+                    st.success("Sentiment analysis completed and saved to database!")
                 else:
                     st.success("Sentiment analysis completed!")
                 
@@ -554,24 +494,11 @@ def sales_prediction_page():
                 if 'user_id' in st.session_state:
                     model_name = f"{model_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                     
-                    # Save model to Firebase Storage
-                    model_url = save_model_to_firebase(model, model_name, st.session_state.user_id)
-                    
-                    # Save model metadata directly to Firestore
-                    model_metadata = {
-                        "name": model_name,
-                        "user_id": st.session_state.user_id,
-                        "type": model_type,
-                        "metrics": json.dumps(metrics),
-                        "storage_path": model_url,
-                        "created_at": datetime.now().isoformat()
-                    }
-                    save_to_firestore("models", model_name, model_metadata)
-                    
-                    if model_url:
+                    # Save model metadata to database
+                    if save_model_metadata(model, model_name, st.session_state.user_id, metrics):
                         st.success(f"Model trained and saved successfully! You can access it in My Models.")
                     else:
-                        st.success("Model trained successfully! (Model could not be saved to cloud storage)")
+                        st.success("Model trained successfully! (Model could not be saved to database)")
                 else:
                     st.success("Model trained successfully!")
                 
@@ -679,11 +606,11 @@ def my_models_page():
     if 'user_id' not in st.session_state:
         st.warning("Please log in to view your models")
         return
-        
+    
     st.subheader("Saved Models")
     
-    # Get models from Firestore
-    user_models = get_from_firestore("models", query=("user_id", "==", st.session_state.user_id)) or []
+    # Get models from database
+    user_models = get_user_models(st.session_state.user_id) or []
     
     if not user_models:
         st.info("You haven't saved any models yet. Train a model in the Sales Prediction page.")
@@ -698,7 +625,7 @@ def my_models_page():
         if isinstance(created_at, str):
             created_at_display = created_at
         else:
-            # Handle Firestore timestamp
+            # Handle database timestamp (adapt as needed for your database)
             try:
                 created_at_display = created_at.strftime("%Y-%m-%d %H:%M:%S")
             except:
@@ -723,8 +650,8 @@ def my_models_page():
         
         if st.button("Load Model"):
             with st.spinner("Loading model..."):
-                # Load model from Firebase Storage
-                model = load_model_from_firebase(selected_model, st.session_state.user_id)
+                # Load model from database
+                model = load_model_from_firebase(selected_model, st.session_state.user_id) #Placeholder: Replace with database loading
                 
                 if model:
                     st.session_state.model = {
@@ -770,9 +697,8 @@ def about_page():
     - **Machine Learning**: Scikit-learn
     - **Data Visualization**: Matplotlib, Seaborn
     - **NLP**: TextBlob for sentiment analysis
-    - **Database**: PostgreSQL for persistent storage
-    - **Authentication**: Firebase Authentication
-    - **Cloud Storage**: Firebase Storage for model storage
+    - **Database**: SQLite for persistent storage
+    - **Authentication**: Local Authentication
     - **APIs**: OpenWeatherMap for weather data
     
     ### Contact Information
@@ -782,6 +708,7 @@ def about_page():
 
 # Main application flow
 if st.session_state.authenticated:
+    init_db() # Initialize the database connection
     main_app()
 else:
     login_page()
