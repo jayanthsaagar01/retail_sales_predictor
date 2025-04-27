@@ -1,0 +1,34 @@
+ypeError: 'Categorical' with dtype category does not support reduction 'mean'
+Traceback:
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 121, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 640, in code_to_exec
+    exec(code, module.__dict__)
+File "/home/runner/workspace/app.py", line 712, in <module>
+    main_app()
+File "/home/runner/workspace/app.py", line 158, in main_app
+    sales_prediction_page()
+File "/home/runner/workspace/app.py", line 564, in sales_prediction_page
+    predictions = predict_sales(
+                  ^^^^^^^^^^^^^^
+File "/home/runner/workspace/utils/model.py", line 170, in predict_sales
+    mean_val = historical_data[col].mean()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/pandas/core/series.py", line 6549, in mean
+    return NDFrame.mean(self, axis, skipna, numeric_only, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/pandas/core/generic.py", line 12420, in mean
+    return self._stat_function(
+           ^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/pandas/core/generic.py", line 12377, in _stat_function
+    return self._reduce(
+           ^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/pandas/core/series.py", line 6443, in _reduce
+    return delegate._reduce(name, skipna=skipna, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/pandas/core/arrays/categorical.py", line 2359, in _reduce
+    result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/pandas/core/arrays/base.py", line 1954, in _reduce
+    raise TypeError(
