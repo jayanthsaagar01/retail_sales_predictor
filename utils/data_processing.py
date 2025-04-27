@@ -93,6 +93,15 @@ def combine_datasets(sales_df, weather_df, sentiment_df):
     weather = weather_df.copy()
     sentiment = sentiment_df.copy()
     
+    # Ensure date columns are properly formatted
+    sales['Date'] = pd.to_datetime(sales['Date']).dt.date
+    weather['Date'] = pd.to_datetime(weather['Date']).dt.date
+    sentiment['Date'] = pd.to_datetime(sentiment['Date']).dt.date
+    
+    # Ensure weather condition is string type
+    if 'Weather_Condition' in weather.columns:
+        weather['Weather_Condition'] = weather['Weather_Condition'].astype(str)
+    
     # Ensure date columns are datetime
     sales['Date'] = pd.to_datetime(sales['Date'])
     weather['Date'] = pd.to_datetime(weather['Date'])

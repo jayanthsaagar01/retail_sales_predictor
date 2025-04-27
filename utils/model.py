@@ -126,19 +126,30 @@ def predict_sales(model, prediction_data, historical_data):
     if isinstance(model, Pipeline):
         # For Random Forest and XGBoost
         pred_df = prediction_data.copy()
+        
+        # Ensure date is in the correct format
+        pred_df['Date'] = pd.to_datetime(pred_df['Date']).dt.date
+        
+        # Preprocess weather condition to ensure it's a string
+        if 'Weather_Condition' in pred_df.columns:
+            pred_df['Weather_Condition'] = pred_df['Weather_Condition'].astype(str)
+        
+        # Preprocess data
         pred_df = preprocess_data(pred_df)
         
-        missing_cols = set(model.feature_names_in_) - set(pred_df.columns)
+        # Get required columns from the model
+        model_columns = model.feature_names_in_ if hasattr(model, 'feature_names_in_') else []
+        missing_cols = set(model_columns) - set(pred_df.columns)
+        
+        # Fill missing columns with appropriate values
         for col in missing_cols:
             if col in historical_data.columns:
                 if historical_data[col].dtype == 'object':
-                    # Get mode value for categorical data
-                    mode_val = historical_data[col].mode()[0]
-                    pred_df[col] = [mode_val] * len(pred_df)
+                    mode_val = str(historical_data[col].mode().iloc[0])
+                    pred_df[col] = mode_val
                 else:
-                    # Get mean value for numerical data
                     mean_val = historical_data[col].mean()
-                    pred_df[col] = [mean_val] * len(pred_df)
+                    pred_df[col] = mean_val
             else:
                 pred_df[col] = 0
 

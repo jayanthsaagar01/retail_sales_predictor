@@ -99,9 +99,11 @@ def get_weather_data(location, start_date, end_date):
                 for col in ['Temperature', 'Precipitation']:
                     merged_df[col] = merged_df[col].interpolate(method='linear')
                 
-                # Forward fill weather condition
-                merged_df['Weather_Condition'] = merged_df['Weather_Condition'].fillna(method='ffill')
-                merged_df['Weather_Condition'] = merged_df['Weather_Condition'].fillna(method='bfill')
+                # Forward fill and back fill weather condition
+                merged_df['Weather_Condition'] = merged_df['Weather_Condition'].ffill().bfill()
+                
+                # Ensure weather condition is string
+                merged_df['Weather_Condition'] = merged_df['Weather_Condition'].astype(str)
                 
                 return merged_df
                 
