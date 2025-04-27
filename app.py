@@ -467,7 +467,7 @@ def sales_prediction_page():
 
         model_type = st.selectbox(
             "Select Model Type",
-            options=["Linear Regression", "Random Forest", "XGBoost"]
+            options=["Random Forest", "XGBoost", "ARIMA"]
         )
 
         test_size = st.slider("Test Data Size (%)", 10, 40, 20) / 100

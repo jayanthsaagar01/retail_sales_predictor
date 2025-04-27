@@ -25,6 +25,11 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
 
     # Preprocess data
     df = preprocess_data(df)
+    
+    # Validate model type
+    valid_models = ["Random Forest", "XGBoost", "ARIMA"]
+    if model_type not in valid_models:
+        raise ValueError(f"Model type must be one of {valid_models}")
 
     if model_type == "ARIMA":
         # Import pmdarima only when needed
@@ -123,11 +128,13 @@ def predict_sales(model, prediction_data, historical_data):
         for col in missing_cols:
             if col in historical_data.columns:
                 if historical_data[col].dtype == 'object':
-                    pred_df[col] = historical_data[col].mode()[0]
+                    # Repeat the mode value for each row in pred_df
+                    pred_df[col] = [historical_data[col].mode()[0]] * len(pred_df)
                 else:
-                    pred_df[col] = historical_data[col].mean()
+                    # Repeat the mean value for each row in pred_df
+                    pred_df[col] = [historical_data[col].mean()] * len(pred_df)
             else:
-                pred_df[col] = 0 # or handle missing columns appropriately
+                pred_df[col] = [0] * len(pred_df)  # Fill with zeros for all rows
 
 
         predictions = model.predict(pred_df)
