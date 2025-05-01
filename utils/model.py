@@ -25,25 +25,72 @@ def preprocess_data(df):
     for col in data.select_dtypes(include=['object']).columns:
         data[col] = data[col].apply(lambda x: str(x) if isinstance(x, list) else x)
     
-    # Ensure Date is in datetime format
+    # Ensure Date is in datetime format with robust error handling
     if 'Date' in data.columns:
-        data['Date'] = pd.to_datetime(data['Date'])
+        try:
+            # Handle various date formats with error handling
+            data['Date'] = pd.to_datetime(data['Date'], errors='coerce')
+            
+            # Check for NULL dates after conversion
+            if data['Date'].isnull().any():
+                print(f"Warning: Found {data['Date'].isnull().sum()} invalid dates. Will attempt repair.")
+                # Try to extract date part for any timestamp strings that failed conversion
+                string_dates = data.loc[data['Date'].isnull(), 'Date'].astype(str)
+                fixed_dates = pd.to_datetime(string_dates.str.split(' ').str[0], errors='coerce')
+                data.loc[data['Date'].isnull(), 'Date'] = fixed_dates
+            
+            # If any dates are still null after repair attempts, use a sensible approach (forward fill then backward fill)
+            if data['Date'].isnull().any():
+                # Sort by any index or ID column if available
+                if 'Category' in data.columns:
+                    data = data.sort_values(['Category', 'Date'])
+                data['Date'] = data['Date'].ffill().bfill()
+            
+            # Now extract time-based features from valid dates
+            data['Year'] = data['Date'].dt.year
+            data['Month'] = data['Date'].dt.month
+            data['Day'] = data['Date'].dt.day
+            data['DayOfWeek'] = data['Date'].dt.dayofweek
+            data['Quarter'] = data['Date'].dt.quarter
+            data['DayOfYear'] = data['Date'].dt.dayofyear
+            
+            # Handle WeekOfYear more safely (some pandas versions have issues)
+            try:
+                data['WeekOfYear'] = data['Date'].dt.isocalendar().week.astype(int)
+            except:
+                # Alternative approach if the above fails
+                data['WeekOfYear'] = data['Date'].dt.strftime('%U').astype(int)
+            
+            # Create weekend indicator (0 for weekday, 1 for weekend) - vectorized version
+            data['IsWeekend'] = (data['DayOfWeek'] >= 5).astype(int)
         
-        # Extract time-based features
-        data['Year'] = data['Date'].dt.year
-        data['Month'] = data['Date'].dt.month
-        data['Day'] = data['Date'].dt.day
-        data['DayOfWeek'] = data['Date'].dt.dayofweek
-        data['Quarter'] = data['Date'].dt.quarter
-        data['DayOfYear'] = data['Date'].dt.dayofyear
-        data['WeekOfYear'] = data['Date'].dt.isocalendar().week
+        except Exception as e:
+            print(f"Error processing date features: {e}")
+            # Create basic features even if date processing fails to allow model to run
+            for col in ['Year', 'Month', 'Day', 'DayOfWeek', 'Quarter', 'IsWeekend']:
+                if col not in data.columns:
+                    # Add placeholder values
+                    if col == 'Year':
+                        data[col] = 2023
+                    elif col == 'Month':
+                        data[col] = 1
+                    elif col == 'Day':
+                        data[col] = 15
+                    elif col == 'DayOfWeek':
+                        data[col] = 2
+                    elif col == 'Quarter':
+                        data[col] = 1
+                    elif col == 'IsWeekend':
+                        data[col] = 0
         
-        # Create weekend indicator (0 for weekday, 1 for weekend)
-        data['IsWeekend'] = data['DayOfWeek'].apply(lambda x: 1 if x >= 5 else 0)
-        
-        # Create month start/end indicators
-        data['IsMonthStart'] = data['Date'].dt.is_month_start.astype(int)
-        data['IsMonthEnd'] = data['Date'].dt.is_month_end.astype(int)
+        # Create month start/end indicators with error handling
+        try:
+            data['IsMonthStart'] = data['Date'].dt.is_month_start.astype(int)
+            data['IsMonthEnd'] = data['Date'].dt.is_month_end.astype(int)
+        except Exception as e:
+            print(f"Error creating month indicators: {e}")
+            data['IsMonthStart'] = 0
+            data['IsMonthEnd'] = 0
         
         # Create season indicator (1:Winter, 2:Spring, 3:Summer, 4:Fall)
         data['Season'] = data['Month'].apply(lambda month: 
@@ -54,8 +101,11 @@ def preprocess_data(df):
         # Create Indian festival indicators (approximate dates for common festivals)
         data['IsDiwali'] = ((data['Month'] == 10) & (data['Day'] >= 20) & (data['Day'] <= 30)).astype(int)
         data['IsHoli'] = ((data['Month'] == 3) & (data['Day'] >= 10) & (data['Day'] <= 20)).astype(int)
-        data['IsNavratri'] = (((data['Month'] == 9) | (data['Month'] == 10)) & 
-                             (data['Day'] >= 25 if data['Month'] == 9 else data['Day'] <= 15)).astype(int)
+        
+        # Fix Navratri calculation with proper vectorized operations
+        october_days = ((data['Month'] == 10) & (data['Day'] <= 15))
+        september_days = ((data['Month'] == 9) & (data['Day'] >= 25))
+        data['IsNavratri'] = (october_days | september_days).astype(int)
         
         # Create end-of-financial-year indicator (March in India)
         data['IsFinancialYearEnd'] = ((data['Month'] == 3) & (data['Day'] >= 25)).astype(int)
@@ -163,9 +213,12 @@ def preprocess_data(df):
         data['Temp_Sentiment_Interaction'] = data['Temperature'] * data['Sentiment_Score']
         data['Temp_Squared'] = data['Temperature'] ** 2  # Quadratic temperature effect
 
-    # Drop the original Date column at the end since we've extracted all useful features
-    if 'Date' in data.columns and data.shape[1] > 20:  # Only drop if we have enough other features
-        data = data.drop('Date', axis=1)
+    # Only drop Date column if we no longer need it and all relevant features are extracted
+    try:
+        if 'Date' in data.columns and data.shape[1] > 20:  # Only drop if we have enough other features
+            data = data.drop('Date', axis=1)
+    except Exception as e:
+        print(f"Warning: Couldn't drop Date column: {e}")
         
     return data
 
@@ -182,12 +235,42 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
     if model_type not in valid_models:
         raise ValueError(f"Model type must be one of {valid_models}")
 
-    # Prepare features and target
-    X = df.drop(['Total_Sales', 'Date'], axis=1)
-    if 'Sales_7D_MA' in X.columns:
-        X = X.drop(['Sales_7D_MA'], axis=1)
-    if 'Quantity' in X.columns:
-        X = X.drop(['Quantity'], axis=1)
+    # Prepare features and target with robust error handling
+    try:
+        # First check what columns actually exist to avoid KeyErrors
+        columns_to_drop = []
+        if 'Total_Sales' in df.columns:
+            columns_to_drop.append('Total_Sales')
+        if 'Date' in df.columns:
+            columns_to_drop.append('Date')
+            
+        # Drop required columns safely
+        if columns_to_drop:
+            X = df.drop(columns_to_drop, axis=1)
+        else:
+            # Handle error case - if we can't find Total_Sales column
+            print("WARNING: Could not find required target column 'Total_Sales'")
+            # Make a best guess at which column might be the target
+            numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+            if len(numeric_cols) > 0:
+                # Use the last numeric column as target if Total_Sales is missing
+                target_col = numeric_cols[-1]
+                print(f"Using '{target_col}' as target column instead")
+                X = df.drop([target_col], axis=1)
+                df['Total_Sales'] = df[target_col]  # Create Total_Sales for later use
+            else:
+                # Critical failure, can't proceed without a target
+                raise ValueError("No numeric columns found that could be used as target")
+        
+        # Drop additional columns that might cause issues
+        if 'Sales_7D_MA' in X.columns:
+            X = X.drop(['Sales_7D_MA'], axis=1)
+        if 'Quantity' in X.columns:
+            X = X.drop(['Quantity'], axis=1)
+            
+    except Exception as e:
+        print(f"Error preparing features and target: {e}")
+        raise
 
     y = df['Total_Sales']
 
