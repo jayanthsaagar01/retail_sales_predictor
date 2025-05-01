@@ -68,47 +68,64 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
         remainder='passthrough'  # Include any other columns
     )
 
-    # Select model based on user choice
+    # Select model based on user choice with optimized hyperparameters for high accuracy
     if model_type == "Random Forest":
         model = RandomForestRegressor(
-            n_estimators=100,
-            max_depth=8,
-            min_samples_split=8,
-            min_samples_leaf=3,
-            max_features='sqrt',
-            bootstrap=True,
-            random_state=42
+            n_estimators=500,           # More trees for better accuracy
+            max_depth=15,               # Deeper trees to capture complex patterns
+            min_samples_split=5,        # Allow more splitting for finer detail
+            min_samples_leaf=2,         # Smaller leaf size for more precise predictions
+            max_features='sqrt',        # Standard feature selection approach
+            bootstrap=True,             # Use bootstrapping for better generalization
+            n_jobs=-1,                  # Use all cores for faster training
+            random_state=42,
+            verbose=1                   # Show progress during training
         )
     elif model_type == "XGBoost":
         model = XGBRegressor(
-            n_estimators=100,
-            learning_rate=0.03,
-            max_depth=5,
-            min_child_weight=3,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            gamma=0.1,
-            reg_alpha=0.1,
-            reg_lambda=1,
-            random_state=42
+            n_estimators=500,           # More boosting rounds
+            learning_rate=0.01,         # Slower learning rate for better generalization
+            max_depth=7,                # Deeper trees
+            min_child_weight=1,         # Lower value to allow more specific node creation
+            subsample=0.8,              # Use 80% of data for each tree (prevents overfitting)
+            colsample_bytree=0.8,       # Use 80% of features for each tree
+            colsample_bylevel=0.8,      # Use 80% of features for each level
+            gamma=0,                    # Minimum loss reduction for further partition
+            reg_alpha=0.001,            # L1 regularization
+            reg_lambda=1,               # L2 regularization
+            tree_method='hist',         # Faster histogram-based algorithm
+            n_jobs=-1,                  # Use all cores
+            random_state=42,
+            verbosity=1                 # Show progress during training
         )
     elif model_type == "CatBoost":
         model = CatBoostRegressor(
-            iterations=500,
-            learning_rate=0.03,
-            depth=6,
-            loss_function='RMSE',
-            verbose=False,
-            random_seed=42
+            iterations=1000,            # More iterations for better convergence
+            learning_rate=0.01,         # Slower learning rate for better generalization
+            depth=8,                    # Deeper trees for more complex patterns
+            l2_leaf_reg=3,              # L2 regularization
+            loss_function='RMSE',       # Standard loss function for regression
+            eval_metric='RMSE',         # Metric to optimize
+            task_type='CPU',            # CPU training
+            bootstrap_type='Bayesian',  # Bayesian bootstrap for better generalization
+            random_seed=42,
+            verbose=50                  # Show progress every 50 iterations
         )
     elif model_type == "Linear Regression":
-        model = LinearRegression()
+        # Use Ridge regression instead of plain Linear Regression
+        model = Ridge(
+            alpha=0.5,                  # Regularization strength
+            solver='auto',              # Auto-select solver
+            random_state=42
+        )
     elif model_type == "SVR":
         model = SVR(
-            kernel='rbf',
-            C=100,
-            epsilon=0.1,
-            gamma='scale'
+            kernel='rbf',               # Radial basis function kernel
+            C=100,                      # Regularization parameter
+            epsilon=0.1,                # Epsilon in epsilon-SVR model
+            gamma=0.01,                 # Kernel coefficient
+            cache_size=1000,            # Cache size in MB
+            verbose=True                # Show progress during training
         )
         
     # Create pipeline
@@ -117,8 +134,20 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
         ('model', model)
     ])
 
-    # Split data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+    # Split data using stratification if possible for better representation
+    try:
+        # Create bins for stratification (regression tasks don't have natural classes)
+        y_binned = pd.qcut(y, q=5, duplicates='drop')
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=42, stratify=y_binned
+        )
+        print("Using stratified sampling for better model performance")
+    except Exception as e:
+        # Fall back to regular train_test_split if stratification fails
+        print(f"Stratification failed: {e}, using regular train_test_split")
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=42
+        )
 
     # Train model
     pipeline.fit(X_train, y_train)
@@ -126,16 +155,84 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
     # Evaluate model
     y_pred = pipeline.predict(X_test)
 
-    # Calculate all the requested metrics
+    # Calculate all the requested metrics with enhanced precision and analysis
+    # Ensure predictions are non-negative for real-world sales
+    y_pred = np.maximum(0, y_pred)
+    
+    # Basic metrics
+    r2 = r2_score(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+    
+    # Calculate MAPE safely (avoiding division by zero)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        mape_values = np.abs((y_test - y_pred) / np.maximum(0.01, np.abs(y_test))) * 100
+        mape = np.nanmean(mape_values)  # Ignore NaN values that could result from division
+    
+    # Compile metrics dictionary with analysis insights
     metrics = {
-        'r2': r2_score(y_test, y_pred),  # Proportion of variance explained (1 is perfect)
-        'mae': mean_absolute_error(y_test, y_pred),  # Average absolute difference 
-        'mse': mean_squared_error(y_test, y_pred),  # Penalizes large errors more heavily
-        'rmse': np.sqrt(mean_squared_error(y_test, y_pred)),  # Root Mean Squared Error
-        'mape': np.mean(np.abs((y_test - y_pred) / np.maximum(1e-10, np.abs(y_test)))) * 100  # Mean Absolute Percentage Error
+        'r2': r2,                   # Proportion of variance explained (1 is perfect)
+        'mae': mae,                 # Average absolute difference 
+        'mse': mse,                 # Penalizes large errors more heavily
+        'rmse': rmse,               # Root Mean Squared Error
+        'mape': mape,               # Mean Absolute Percentage Error
+        'accuracy_level': get_accuracy_level(r2, mape)  # Custom accuracy assessment
     }
-
+    
+    # Print detailed model performance analysis
+    print(f"\n{'='*50}")
+    print(f"MODEL PERFORMANCE ANALYSIS: {model_type.upper()}")
+    print(f"{'='*50}")
+    print(f"R² Score:                    {r2:.4f}  (Higher is better, 1.0 is perfect)")
+    print(f"Mean Absolute Error:         {mae:.2f}  (Lower is better)")
+    print(f"Mean Squared Error:          {mse:.2f}  (Lower is better)")
+    print(f"Root Mean Squared Error:     {rmse:.2f}  (Lower is better, same units as target)")
+    print(f"Mean Absolute Percentage Err: {mape:.2f}% (Lower is better)")
+    print(f"Model Accuracy Assessment:   {metrics['accuracy_level']}")
+    print(f"{'='*50}")
+    
+    # Detect potential outliers in the residuals
+    residuals = y_test - y_pred
+    abs_residuals = np.abs(residuals)
+    outlier_threshold = abs_residuals.mean() + 2 * abs_residuals.std()
+    outlier_count = np.sum(abs_residuals > outlier_threshold)
+    
+    if outlier_count > 0:
+        print(f"Potential prediction outliers detected: {outlier_count} ({outlier_count/len(y_test)*100:.2f}%)")
+        print("These outliers might affect model accuracy. Consider feature engineering or ensemble methods.")
+    
     return pipeline, X_train, X_test, y_train, y_test, metrics
+
+def get_accuracy_level(r2, mape):
+    """
+    Provide a qualitative assessment of model accuracy based on metrics
+    
+    Parameters:
+    -----------
+    r2 : float
+        R-squared value
+    mape : float
+        Mean Absolute Percentage Error
+        
+    Returns:
+    --------
+    str
+        Qualitative assessment of model accuracy
+    """
+    # Combine R² and MAPE for comprehensive accuracy assessment
+    if r2 > 0.9 and mape < 10:
+        return "Excellent - Production Quality"
+    elif r2 > 0.8 and mape < 15:
+        return "Very Good - Reliable for Business Decisions"
+    elif r2 > 0.7 and mape < 20:
+        return "Good - Acceptable for Most Business Uses"
+    elif r2 > 0.6 and mape < 30:
+        return "Fair - Useful for General Trends"
+    elif r2 > 0.5 and mape < 40:
+        return "Moderate - Consider Additional Features"
+    else:
+        return "Needs Improvement - Review Data Quality and Features"
 
 def predict_sales(model, prediction_data, historical_data):
     """Generate sales predictions using the trained model"""

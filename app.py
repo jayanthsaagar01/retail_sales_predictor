@@ -517,9 +517,11 @@ def sales_prediction_page():
                 st.subheader("Model Performance Metrics")
 
                 metrics_df = pd.DataFrame({
-                    'Metric': ['R² Score', 'Mean Absolute Error (MAE)', 'Mean Squared Error (MSE)', 
-                              'Root Mean Squared Error (RMSE)', 'Mean Absolute Percentage Error (MAPE)'],
+                    'Metric': ['Model Accuracy Assessment', 'R² Score', 'Mean Absolute Error (MAE)', 
+                              'Mean Squared Error (MSE)', 'Root Mean Squared Error (RMSE)', 
+                              'Mean Absolute Percentage Error (MAPE)'],
                     'Value': [
+                        metrics.get('accuracy_level', 'Not Available'),
                         f"{metrics['r2']:.4f}",
                         f"{metrics['mae']:.2f}",
                         f"{metrics['mse']:.2f}",
@@ -527,6 +529,7 @@ def sales_prediction_page():
                         f"{metrics['mape']:.2f}%"
                     ],
                     'Description': [
+                        "Overall model quality assessment",
                         "Proportion of variance explained (1 is perfect)",
                         "Average absolute difference between predicted and actual sales",
                         "Penalizes large errors more heavily",
@@ -534,6 +537,18 @@ def sales_prediction_page():
                         "Percentage error (lower is better)"
                     ]
                 })
+                
+                # Highlight the model accuracy assessment with a color based on its value
+                accuracy_level = metrics.get('accuracy_level', '').lower()
+                if 'excellent' in accuracy_level:
+                    st.success(f"✅ Model Accuracy: {metrics.get('accuracy_level')}")
+                elif 'very good' in accuracy_level or 'good' in accuracy_level:
+                    st.info(f"✓ Model Accuracy: {metrics.get('accuracy_level')}")
+                elif 'fair' in accuracy_level or 'moderate' in accuracy_level:
+                    st.warning(f"⚠️ Model Accuracy: {metrics.get('accuracy_level')}")
+                elif 'needs improvement' in accuracy_level:
+                    st.error(f"⛔ Model Accuracy: {metrics.get('accuracy_level')}")
+                    st.write("Consider using more data, feature engineering, or a different model type.")
 
                 st.dataframe(metrics_df)
 

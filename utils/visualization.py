@@ -344,117 +344,131 @@ def plot_sales_forecast(historical_data, predicted_data):
         Figure object containing the plot
     """
     fig, ax = plt.subplots(figsize=(12, 7))
-
-    # Ensure Date columns are datetime
-    historical_data['Date'] = pd.to_datetime(historical_data['Date'])
-    predicted_data['Date'] = pd.to_datetime(predicted_data['Date'])
-
-    # Group historical data by date
-    historical_grouped = historical_data.groupby('Date')['Total_Sales'].sum().reset_index()
-
-    # Group predicted data by date
-    predicted_grouped = predicted_data.groupby('Date')['Predicted_Sales'].sum().reset_index()
-
-    # Plot historical data with thicker line
-    ax.plot(
-        historical_grouped['Date'], 
-        historical_grouped['Total_Sales'],
-        marker='o',
-        markersize=8,
-        linewidth=3,
-        color='#0066cc',
-        label='Past Sales'
-    )
-
-    # Plot predicted data with thicker line
-    ax.plot(
-        predicted_grouped['Date'],
-        predicted_grouped['Predicted_Sales'],
-        marker='s',
-        markersize=8,
-        linewidth=3,
-        linestyle='--',
-        color='#ff9933',
-        label='Future Sales (Predicted)'
-    )
-
-    # Add shaded area to distinguish historical from predicted with better color
-    if not historical_grouped.empty and not predicted_grouped.empty:
-        min_y = min(
-            historical_grouped['Total_Sales'].min() if not historical_grouped.empty else 0, 
-            predicted_grouped['Predicted_Sales'].min() if not predicted_grouped.empty else 0
-        ) * 0.9
-        
-        max_y = max(
-            historical_grouped['Total_Sales'].max() if not historical_grouped.empty else 0, 
-            predicted_grouped['Predicted_Sales'].max() if not predicted_grouped.empty else 0
-        ) * 1.1
-
-        if not historical_grouped.empty and not predicted_grouped.empty:
-            last_historical_date = historical_grouped['Date'].max()
-
-            # Add more clear division between past and future
-            ax.axvspan(last_historical_date, predicted_grouped['Date'].max(), alpha=0.15, color='#ffcc99')
-            ax.axvline(last_historical_date, linestyle='--', color='#ff6600', linewidth=2)
-
-            # Add clearer labels for past and future
-            if len(historical_grouped) > 1:
-                ax.text(
-                    historical_grouped['Date'].iloc[len(historical_grouped) // 2], 
-                    max_y * 0.9, 
-                    'PAST', 
-                    ha='center', 
-                    fontsize=14, 
-                    color='#0066cc',
-                    fontweight='bold',
-                    bbox={'facecolor':'white', 'alpha':0.8, 'pad':5, 'boxstyle':'round'}
-                )
-            
-            if len(predicted_grouped) > 1:
-                ax.text(
-                    predicted_grouped['Date'].iloc[len(predicted_grouped) // 2], 
-                    max_y * 0.9, 
-                    'FUTURE', 
-                    ha='center', 
-                    fontsize=14, 
-                    color='#ff6600',
-                    fontweight='bold',
-                    bbox={'facecolor':'white', 'alpha':0.8, 'pad':5, 'boxstyle':'round'}
-                )
-
-            # Annotate last real value and first predicted value
-            if not historical_grouped.empty and len(historical_grouped) > 0:
-                last_actual = historical_grouped['Total_Sales'].iloc[-1]
-                ax.annotate(f'Last actual: ₹{int(last_actual):,}',
-                           xy=(last_historical_date, last_actual),
-                           xytext=(-100, 30),
-                           textcoords='offset points',
-                           arrowprops=dict(arrowstyle='->'),
-                           fontsize=10)
-            
-            if not predicted_grouped.empty and len(predicted_grouped) > 0:
-                first_predicted = predicted_grouped['Predicted_Sales'].iloc[0]
-                ax.annotate(f'First prediction: ₹{int(first_predicted):,}',
-                           xy=(predicted_grouped['Date'].iloc[0], first_predicted),
-                           xytext=(30, 30),
-                           textcoords='offset points',
-                           arrowprops=dict(arrowstyle='->'),
-                           fontsize=10)
-
-    ax.set_title('What We Expect to Sell in the Future', fontsize=18, fontweight='bold')
+    
+    # Group by date and calculate total sales
+    historical = historical_data.copy()
+    historical['Date'] = pd.to_datetime(historical['Date'])
+    historical_grouped = historical.groupby('Date')['Total_Sales'].sum().reset_index()
+    
+    # Prepare prediction data
+    predictions = predicted_data.copy()
+    predictions['Date'] = pd.to_datetime(predictions['Date'])
+    predictions_grouped = predictions.groupby('Date')['Predicted_Sales'].sum().reset_index()
+    
+    # Plot historical data in blue with gradient shading underneath
+    ax.plot(historical_grouped['Date'], historical_grouped['Total_Sales'], 
+            marker='o', color='#3498db', linestyle='-', linewidth=3, markersize=8,
+            label='Historical Sales 📊')
+    
+    # Add fill below historical data line
+    ax.fill_between(historical_grouped['Date'], 0, historical_grouped['Total_Sales'], 
+                     color='#3498db', alpha=0.2)
+    
+    # Plot predicted data in red with gradient shading underneath
+    ax.plot(predictions_grouped['Date'], predictions_grouped['Predicted_Sales'], 
+            marker='s', color='#e74c3c', linestyle='--', linewidth=3, markersize=8,
+            label='Predicted Sales 🔮')
+    
+    # Add fill below prediction data line
+    ax.fill_between(predictions_grouped['Date'], 0, predictions_grouped['Predicted_Sales'], 
+                     color='#e74c3c', alpha=0.2)
+    
+    # Add a vertical line separating historical from predicted data
+    cutoff_date = historical_grouped['Date'].max()
+    ax.axvline(x=cutoff_date, color='gray', linestyle='--', linewidth=2)
+    
+    # Add labels and a legend
+    ax.set_title('Sales Forecast: What Happened vs What Will Happen', fontsize=18, fontweight='bold')
     ax.set_xlabel('Date', fontsize=14)
     ax.set_ylabel('Total Sales (₹)', fontsize=14)
-    ax.grid(True, alpha=0.3)
     
-    # Create a clearer legend
+    # Format y-axis as currency with ₹ symbol
+    import matplotlib.ticker as mticker
+    def rupee_format(x, pos):
+        return f'₹{int(x):,}'
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(rupee_format))
+    
+    # Improve grid and background for readability
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.set_facecolor('#f8f9fa')
+    
+    # Determine chart min/max for annotation positioning
+    min_y = min(
+        historical_grouped['Total_Sales'].min() if not historical_grouped.empty else 0, 
+        predictions_grouped['Predicted_Sales'].min() if not predictions_grouped.empty else 0
+    ) * 0.8
+    
+    max_y = max(
+        historical_grouped['Total_Sales'].max() if not historical_grouped.empty else 0, 
+        predictions_grouped['Predicted_Sales'].max() if not predictions_grouped.empty else 0
+    ) * 1.1
+    
+    # Add annotations for past and future
+    if len(historical_grouped) > 1:
+        ax.text(
+            historical_grouped['Date'].iloc[len(historical_grouped) // 2], 
+            max_y * 0.9, 
+            'What happened in the past', 
+            ha='center', 
+            fontsize=12, 
+            color='#3498db', 
+            fontweight='bold',
+            bbox=dict(boxstyle="round,pad=0.5", fc='white', ec='#3498db', alpha=0.8)
+        )
+    
+    if len(predictions_grouped) > 1:
+        ax.text(
+            predictions_grouped['Date'].iloc[len(predictions_grouped) // 2], 
+            max_y * 0.9, 
+            'What will happen in the future', 
+            ha='center', 
+            fontsize=12, 
+            color='#e74c3c', 
+            fontweight='bold',
+            bbox=dict(boxstyle="round,pad=0.5", fc='white', ec='#e74c3c', alpha=0.8)
+        )
+    
+    # Add "Today" annotation at the cutoff point
+    ax.annotate('Today', 
+                xy=(cutoff_date, min_y * 1.2), 
+                xytext=(cutoff_date, min_y * 1.2),
+                fontsize=10, ha='center', color='gray', fontweight='bold',
+                bbox=dict(boxstyle="round,pad=0.3", fc='white', ec='gray', alpha=0.8))
+    
+    # Annotate last real value and first predicted value
+    if not historical_grouped.empty and len(historical_grouped) > 0:
+        last_actual = historical_grouped['Total_Sales'].iloc[-1]
+        ax.annotate(f'Last actual: ₹{int(last_actual):,}',
+                   xy=(cutoff_date, last_actual),
+                   xytext=(-100, 30),
+                   textcoords='offset points',
+                   arrowprops=dict(arrowstyle='->'),
+                   fontsize=10)
+    
+    if not predictions_grouped.empty and len(predictions_grouped) > 0:
+        first_predicted = predictions_grouped['Predicted_Sales'].iloc[0]
+        ax.annotate(f'First prediction: ₹{int(first_predicted):,}',
+                   xy=(predictions_grouped['Date'].iloc[0], first_predicted),
+                   xytext=(30, 30),
+                   textcoords='offset points',
+                   arrowprops=dict(arrowstyle='->'),
+                   fontsize=10)
+    
+    # Create a clearer legend with shadow and rounded corners
     legend = ax.legend(fontsize=12, loc='upper center', bbox_to_anchor=(0.5, -0.15), 
                      ncol=2, frameon=True, facecolor='white')
+    frame = legend.get_frame()
+    frame.set_facecolor('white')
+    frame.set_edgecolor('lightgray')
     
     # Add a text box with simple explanation
-    explanation = "This chart shows our past sales and predicts future sales.\nThe blue line shows what we sold in the past, and the orange line shows what we expect to sell in the future."
+    explanation = "This chart shows what we sold before and what we expect to sell next.\nBlue line = past sales, Red line = future sales we expect."
     plt.figtext(0.5, 0.01, explanation, ha='center', fontsize=12, 
                 bbox={'facecolor':'#F0F0F0', 'alpha':0.5, 'pad':5})
-
+    
+    # Format x-axis dates
+    fig.autofmt_xdate()
+    
     plt.tight_layout(rect=[0, 0.08, 1, 0.95])  # Make room for the explanation
 
     return fig
