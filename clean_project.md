@@ -2,32 +2,48 @@
 
 Follow these steps to prepare the project for presentation by removing Replit-specific references and files.
 
-## Files to Remove
+## Replace Configuration Files
 
-These files are specific to the Replit environment and aren't needed for local deployment:
+These files are specific to the development environment and need to be replaced for local deployment:
 
-1. `.replit`
-2. `replit.nix`
-3. `.config/` directory
-4. Any files with a `.replit` extension
-5. The `generated-icon.png` (Replit-generated)
-
-You can remove them with these commands:
+1. Replace `.replit` with `config.toml`
+2. Replace `replit.nix` with `environment.nix`
+3. Remove `.config/` directory
+4. Remove any files with a `.replit` extension
+5. Remove the `generated-icon.png` (automatically generated)
 
 ### On Mac/Linux:
 ```bash
-# Remove Replit-specific files
+# Replacement method 1: Keep new files and remove old ones
+# If you already have the new config.toml and environment.nix files:
 rm -f .replit replit.nix generated-icon.png
 rm -rf .config
 rm -f *.replit
+
+# Replacement method 2: Rename the files
+# If you want to keep the configuration but rename it:
+mv .replit config.toml
+mv replit.nix environment.nix
+rm -rf .config
+rm -f *.replit
+rm -f generated-icon.png
 ```
 
 ### On Windows:
 ```powershell
-# Remove Replit-specific files
+# Replacement method 1: Keep new files and remove old ones
+# If you already have the new config.toml and environment.nix files:
 Remove-Item -Path .replit, replit.nix, generated-icon.png -ErrorAction SilentlyContinue
 Remove-Item -Path .config -Recurse -ErrorAction SilentlyContinue
 Remove-Item -Path *.replit -ErrorAction SilentlyContinue
+
+# Replacement method 2: Rename the files
+# If you want to keep the configuration but rename it:
+Rename-Item -Path .replit -NewName config.toml -ErrorAction SilentlyContinue
+Rename-Item -Path replit.nix -NewName environment.nix -ErrorAction SilentlyContinue
+Remove-Item -Path .config -Recurse -ErrorAction SilentlyContinue
+Remove-Item -Path *.replit -ErrorAction SilentlyContinue
+Remove-Item -Path generated-icon.png -ErrorAction SilentlyContinue
 ```
 
 ## Changing Application Name
