@@ -465,9 +465,20 @@ def sales_prediction_page():
         # Model parameters
         st.markdown("### Model Parameters")
 
+        # First, show model options with descriptions
+        st.markdown("""
+        ### Available Models
+        
+        - **Random Forest**: Best for structured tabular data and nonlinear relationships. Robust and interpretable, but lacks temporal awareness.
+        - **XGBoost**: Excellent for large datasets with many features. High performance and handles missing data well.
+        - **CatBoost**: Optimized for categorical-heavy datasets. Works well with minimal preprocessing.
+        - **Linear Regression**: Good for small datasets and fast inference. Works best with linear relationships.
+        - **SVR (Support Vector Regression)**: Effective for medium-sized datasets. Handles non-linear relationships well.
+        """)
+        
         model_type = st.selectbox(
             "Select Model Type",
-            options=["Random Forest", "XGBoost", "ARIMA"]
+            options=["Random Forest", "XGBoost", "CatBoost", "Linear Regression", "SVR"]
         )
 
         test_size = st.slider("Test Data Size (%)", 10, 40, 20) / 100

@@ -6,6 +6,10 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
+# Make sure to install CatBoost with: pip install catboost
+from catboost import CatBoostRegressor
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 import joblib
 from datetime import datetime, timedelta
