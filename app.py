@@ -72,7 +72,7 @@ def authenticate(email, password):
 def login_page():
     # Initialize database tables
     init_db()
-    st.title("📊 Sales Prediction Dashboard")
+    st.title("📊 RetailPro Forecaster")
 
     col1, col2 = st.columns([1, 1])
 
@@ -165,7 +165,7 @@ def main_app():
 
 # Home page
 def home_page():
-    st.title("📊 Sales Prediction Dashboard")
+    st.title("📊 RetailPro Forecaster")
 
     col1, col2 = st.columns([2, 1])
 
@@ -796,9 +796,9 @@ def about_page():
     st.title("About")
 
     st.markdown("""
-    ## Sales Prediction Application
+    ## RetailPro Forecaster
 
-    This application helps retailers predict sales by analyzing the impact of weather conditions and social media sentiment on consumer behavior.
+    This advanced application helps retailers predict sales by analyzing the impact of weather conditions and social media sentiment on consumer behavior.
 
     ### How It Works
 
