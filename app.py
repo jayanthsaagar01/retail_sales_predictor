@@ -517,11 +517,21 @@ def sales_prediction_page():
                 st.subheader("Model Performance Metrics")
 
                 metrics_df = pd.DataFrame({
-                    'Metric': ['R² Score', 'Mean Absolute Error', 'Mean Squared Error'],
+                    'Metric': ['R² Score', 'Mean Absolute Error (MAE)', 'Mean Squared Error (MSE)', 
+                              'Root Mean Squared Error (RMSE)', 'Mean Absolute Percentage Error (MAPE)'],
                     'Value': [
-                        metrics['r2'],
-                        metrics['mae'],
-                        metrics['mse']
+                        f"{metrics['r2']:.4f}",
+                        f"{metrics['mae']:.2f}",
+                        f"{metrics['mse']:.2f}",
+                        f"{metrics['rmse']:.2f}",
+                        f"{metrics['mape']:.2f}%"
+                    ],
+                    'Description': [
+                        "Proportion of variance explained (1 is perfect)",
+                        "Average absolute difference between predicted and actual sales",
+                        "Penalizes large errors more heavily",
+                        "Similar to MSE, but in original units",
+                        "Percentage error (lower is better)"
                     ]
                 })
 
@@ -708,8 +718,8 @@ def about_page():
     - **Machine Learning**: Scikit-learn
     - **Data Visualization**: Matplotlib, Seaborn
     - **NLP**: TextBlob for sentiment analysis
-    - **Database**: Firebase for persistent storage
-    - **Authentication**: Firebase Authentication
+    - **Database**: SQLite with SQLAlchemy for local persistent storage
+    - **Authentication**: Local authentication system
     - **APIs**: OpenWeatherMap for weather data
 
     ### Contact Information
@@ -719,7 +729,7 @@ def about_page():
 
 # Main application flow
 if st.session_state.authenticated:
-    # We no longer need to initialize a database since we're using Firebase
+    # Initialize local database
     main_app()
 else:
     login_page()

@@ -114,10 +114,13 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
     # Evaluate model
     y_pred = pipeline.predict(X_test)
 
+    # Calculate all the requested metrics
     metrics = {
-        'r2': r2_score(y_test, y_pred),
-        'mae': mean_absolute_error(y_test, y_pred),
-        'mse': mean_squared_error(y_test, y_pred)
+        'r2': r2_score(y_test, y_pred),  # Proportion of variance explained (1 is perfect)
+        'mae': mean_absolute_error(y_test, y_pred),  # Average absolute difference 
+        'mse': mean_squared_error(y_test, y_pred),  # Penalizes large errors more heavily
+        'rmse': np.sqrt(mean_squared_error(y_test, y_pred)),  # Root Mean Squared Error
+        'mape': np.mean(np.abs((y_test - y_pred) / np.maximum(1e-10, np.abs(y_test)))) * 100  # Mean Absolute Percentage Error
     }
 
     return pipeline, X_train, X_test, y_train, y_test, metrics
