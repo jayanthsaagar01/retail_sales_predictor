@@ -472,3 +472,138 @@ def plot_sales_forecast(historical_data, predicted_data):
     plt.tight_layout(rect=[0, 0.08, 1, 0.95])  # Make room for the explanation
 
     return fig
+    
+def plot_feature_importance(model, feature_names):
+    """
+    Visualize feature importance from the trained model for easy interpretation
+    
+    Parameters:
+    -----------
+    model : trained model
+        The trained model object
+    feature_names : list
+        List of feature names
+        
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        Figure object containing the plot
+    """
+    # Extract feature importance based on model type
+    importances = None
+    model_type = type(model).__name__
+    
+    try:
+        # Get the underlying model from the pipeline
+        if hasattr(model, 'named_steps') and 'model' in model.named_steps:
+            base_model = model.named_steps['model']
+        else:
+            base_model = model
+            
+        # Extract feature importance based on model type
+        if hasattr(base_model, 'feature_importances_'):
+            importances = base_model.feature_importances_
+        elif hasattr(base_model, 'coef_'):
+            importances = np.abs(base_model.coef_)
+            # Flatten if it's a 2D array (like in multiclass cases)
+            if importances.ndim > 1:
+                importances = importances.mean(axis=0)
+    except Exception as e:
+        print(f"Error extracting feature importance: {e}")
+        return None
+    
+    if importances is None or len(importances) == 0:
+        print("No feature importance available for this model")
+        return None
+    
+    # Create a list of features and their importance scores
+    if len(importances) != len(feature_names):
+        print(f"Feature importance length ({len(importances)}) doesn't match feature names length ({len(feature_names)})")
+        # Trim to the shorter length
+        min_len = min(len(importances), len(feature_names))
+        importances = importances[:min_len]
+        feature_names = feature_names[:min_len]
+    
+    # Create a DataFrame for easier sorting
+    feature_importance_df = pd.DataFrame({
+        'Feature': feature_names,
+        'Importance': importances
+    })
+    
+    # Sort by importance
+    feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False).reset_index(drop=True)
+    
+    # Take top 10 features for clearer visualization
+    top_features = feature_importance_df.head(10)
+    
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Create a colorful horizontal bar plot
+    colors = plt.cm.viridis(np.linspace(0, 0.8, len(top_features)))
+    
+    # Plot horizontal bars
+    bars = ax.barh(top_features['Feature'], top_features['Importance'], color=colors)
+    
+    # Add values at the end of bars
+    for i, bar in enumerate(bars):
+        width = bar.get_width()
+        ax.text(width + width*0.01, 
+                bar.get_y() + bar.get_height()/2, 
+                f'{width:.3f}', 
+                ha='left', va='center', 
+                fontweight='bold')
+    
+    # Add custom emoji based on feature to make it more understandable
+    feature_emojis = {
+        'temperature': '🌡️',
+        'temp': '🌡️',
+        'weather': '⛅',
+        'sentiment': '😊',
+        'day': '📅',
+        'month': '📆',
+        'year': '📆',
+        'price': '💰',
+        'holiday': '🎉',
+        'season': '🍂',
+        'weekend': '🏖️',
+        'rain': '🌧️',
+        'snow': '❄️',
+        'cloudy': '☁️',
+        'humid': '💧',
+        'promotion': '🏷️',
+    }
+    
+    # Add emojis to feature names if any keyword matches
+    for i, feature in enumerate(top_features['Feature']):
+        feature_lower = feature.lower()
+        emoji = '📊'  # Default emoji
+        
+        # Find matching emoji
+        for keyword, emoji_icon in feature_emojis.items():
+            if keyword in feature_lower:
+                emoji = emoji_icon
+                break
+                
+        # Update y-tick label with emoji
+        ax.get_yticklabels()[i].set_text(f"{emoji} {feature}")
+    
+    # Add labels and title with simple explanations
+    ax.set_title('What Affects Sales the Most? 🔍', fontsize=16, fontweight='bold')
+    ax.set_xlabel('How Important Each Factor Is', fontsize=14)
+    
+    # Add explanatory annotation
+    ax.text(0.5, -0.15, 
+            "Bigger bars = That factor affects sales more!\nUse this to know what really drives your store's sales.", 
+            ha='center', va='center', transform=ax.transAxes, 
+            fontsize=12, style='italic',
+            bbox=dict(boxstyle='round,pad=0.5', facecolor='lightyellow', alpha=0.7))
+    
+    # Improve grid and background for readability
+    ax.grid(True, axis='x', linestyle='--', alpha=0.6)
+    ax.set_axisbelow(True)
+    ax.set_facecolor('#f8f9fa')
+    
+    plt.tight_layout()
+    
+    return fig

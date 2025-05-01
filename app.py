@@ -12,7 +12,8 @@ from utils.visualization import (
     plot_correlation_heatmap, 
     plot_weather_impact, 
     plot_sentiment_impact,
-    plot_sales_forecast
+    plot_sales_forecast,
+    plot_feature_importance
 )
 from utils.model import train_model, predict_sales
 from utils.sentiment_analysis import analyze_sentiment
@@ -27,6 +28,7 @@ from utils.database import (
     load_sentiment_data,
     save_model_metadata, 
     get_user_models, 
+    load_model,
     has_data,
     authenticate_user,
     register_user
@@ -551,6 +553,23 @@ def sales_prediction_page():
                     st.write("Consider using more data, feature engineering, or a different model type.")
 
                 st.dataframe(metrics_df)
+                
+                # Show feature importance visualization
+                st.subheader("What Factors Affect Sales the Most?")
+                st.write("This chart shows which factors have the biggest impact on your sales predictions.")
+                
+                # Get feature names from the model
+                if 'X_train' in st.session_state.model:
+                    feature_names = st.session_state.model['X_train'].columns.tolist()
+                    feature_importance_fig = plot_feature_importance(
+                        st.session_state.model['model'], 
+                        feature_names
+                    )
+                    
+                    if feature_importance_fig:
+                        st.pyplot(feature_importance_fig)
+                    else:
+                        st.info("Feature importance visualization is not available for this model type.")
 
     with col2:
         st.image("https://images.unsplash.com/photo-1559526324-4b87b5e36e44", 

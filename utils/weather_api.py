@@ -37,7 +37,7 @@ def get_weather_data(location, start_date, end_date):
     weather_data = []
     
     # Try to use a real weather API if API key is available
-    api_key = "40f8eada0988a0fb5fcdd999b8fa3088"
+    api_key = os.environ.get('OPENWEATHERMAP_API_KEY')
     
     if api_key:
         try:
