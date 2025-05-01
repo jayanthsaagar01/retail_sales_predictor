@@ -661,8 +661,8 @@ def my_models_page():
 
         if st.button("Load Model"):
             with st.spinner("Loading model..."):
-                # Load model from database
-                model = load_model_from_database(selected_model, st.session_state.user_id) #Placeholder: Replace with database loading
+                # Load model from Firebase Storage
+                model = load_model_from_firebase(selected_model, st.session_state.user_id)
 
                 if model:
                     st.session_state.model = {
@@ -708,8 +708,8 @@ def about_page():
     - **Machine Learning**: Scikit-learn
     - **Data Visualization**: Matplotlib, Seaborn
     - **NLP**: TextBlob for sentiment analysis
-    - **Database**: SQLite for persistent storage
-    - **Authentication**: Local Authentication
+    - **Database**: Firebase for persistent storage
+    - **Authentication**: Firebase Authentication
     - **APIs**: OpenWeatherMap for weather data
 
     ### Contact Information
@@ -719,7 +719,7 @@ def about_page():
 
 # Main application flow
 if st.session_state.authenticated:
-    init_db() # Initialize the database connection
+    # We no longer need to initialize a database since we're using Firebase
     main_app()
 else:
     login_page()
