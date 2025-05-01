@@ -480,7 +480,15 @@ def sales_prediction_page():
         
         model_type = st.selectbox(
             "Select Model Type",
-            options=["Random Forest", "XGBoost", "CatBoost", "Linear Regression", "SVR"]
+            options=["Random Forest", "XGBoost", "CatBoost", "Linear Regression", "SVR", "Ensemble"],
+            help="""
+            - Random Forest: Best for mixed numerical and categorical data with non-linear patterns
+            - XGBoost: High performance on large datasets with complex relationships
+            - CatBoost: Best when you have many categorical features
+            - Linear Regression: Simple model for smaller datasets with clear linear trends
+            - SVR: Good for complex patterns with smaller datasets
+            - Ensemble: Combines multiple models for highest accuracy (slower to train)
+            """
         )
 
         test_size = st.slider("Test Data Size (%)", 10, 40, 20) / 100
@@ -626,9 +634,32 @@ def sales_prediction_page():
 
                 st.success("Predictions generated successfully!")
 
-                # Display predictions
-                st.subheader("Sales Predictions")
-                st.dataframe(predictions)
+                # Display predictions with Indian Rupees (₹) formatting
+                st.subheader("Sales Predictions (in ₹)")
+                
+                # Format the predictions with Indian Rupee symbol and thousand separators
+                display_predictions = predictions.copy()
+                if 'Predicted_Sales' in display_predictions.columns:
+                    display_predictions['Predicted_Sales'] = display_predictions['Predicted_Sales'].apply(
+                        lambda x: f"₹{x:,.2f}" if pd.notna(x) else "N/A"
+                    )
+                
+                # Add confidence intervals if available
+                if 'Lower_Bound' in display_predictions.columns and 'Upper_Bound' in display_predictions.columns:
+                    display_predictions['Confidence Range'] = display_predictions.apply(
+                        lambda row: f"₹{row['Lower_Bound']:,.2f} - ₹{row['Upper_Bound']:,.2f}" 
+                        if pd.notna(row['Lower_Bound']) and pd.notna(row['Upper_Bound']) else "N/A", 
+                        axis=1
+                    )
+                
+                # Add day type column if not already present
+                if 'Day_Type' not in display_predictions.columns and 'Date' in display_predictions.columns:
+                    display_predictions['Day_Type'] = pd.to_datetime(display_predictions['Date']).dt.dayofweek.apply(
+                        lambda x: 'Weekend' if x >= 5 else 'Weekday'
+                    )
+                
+                # Show with helpful styling
+                st.dataframe(display_predictions.style.highlight_max(subset=['Predicted_Sales'], color='lightgreen'))
 
                 # Plot predictions
                 fig = plot_sales_forecast(

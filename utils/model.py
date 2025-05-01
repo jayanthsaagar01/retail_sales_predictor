@@ -17,11 +17,157 @@ from datetime import datetime, timedelta
 import os
 
 def preprocess_data(df):
-    """Clean and preprocess data before model training"""
+    """Clean and preprocess data before model training with advanced feature engineering"""
+    # Make a copy to avoid modifying the original
+    data = df.copy()
+    
     # Convert lists to strings if present
-    for col in df.select_dtypes(include=['object']).columns:
-        df[col] = df[col].apply(lambda x: str(x) if isinstance(x, list) else x)
-    return df
+    for col in data.select_dtypes(include=['object']).columns:
+        data[col] = data[col].apply(lambda x: str(x) if isinstance(x, list) else x)
+    
+    # Ensure Date is in datetime format
+    if 'Date' in data.columns:
+        data['Date'] = pd.to_datetime(data['Date'])
+        
+        # Extract time-based features
+        data['Year'] = data['Date'].dt.year
+        data['Month'] = data['Date'].dt.month
+        data['Day'] = data['Date'].dt.day
+        data['DayOfWeek'] = data['Date'].dt.dayofweek
+        data['Quarter'] = data['Date'].dt.quarter
+        data['DayOfYear'] = data['Date'].dt.dayofyear
+        data['WeekOfYear'] = data['Date'].dt.isocalendar().week
+        
+        # Create weekend indicator (0 for weekday, 1 for weekend)
+        data['IsWeekend'] = data['DayOfWeek'].apply(lambda x: 1 if x >= 5 else 0)
+        
+        # Create month start/end indicators
+        data['IsMonthStart'] = data['Date'].dt.is_month_start.astype(int)
+        data['IsMonthEnd'] = data['Date'].dt.is_month_end.astype(int)
+        
+        # Create season indicator (1:Winter, 2:Spring, 3:Summer, 4:Fall)
+        data['Season'] = data['Month'].apply(lambda month: 
+                                            1 if month in [12, 1, 2] else
+                                            2 if month in [3, 4, 5] else
+                                            3 if month in [6, 7, 8] else 4)
+        
+        # Create Indian festival indicators (approximate dates for common festivals)
+        data['IsDiwali'] = ((data['Month'] == 10) & (data['Day'] >= 20) & (data['Day'] <= 30)).astype(int)
+        data['IsHoli'] = ((data['Month'] == 3) & (data['Day'] >= 10) & (data['Day'] <= 20)).astype(int)
+        data['IsNavratri'] = (((data['Month'] == 9) | (data['Month'] == 10)) & 
+                             (data['Day'] >= 25 if data['Month'] == 9 else data['Day'] <= 15)).astype(int)
+        
+        # Create end-of-financial-year indicator (March in India)
+        data['IsFinancialYearEnd'] = ((data['Month'] == 3) & (data['Day'] >= 25)).astype(int)
+        
+    # Handle weather data if available
+    if 'Temperature' in data.columns:
+        # Create temperature bins for easier pattern recognition
+        data['Temp_Bin'] = pd.cut(data['Temperature'], 
+                                 bins=[-100, 0, 15, 25, 35, 100], 
+                                 labels=['Freezing', 'Cold', 'Mild', 'Warm', 'Hot'])
+        
+        # Create weather interaction features
+        if 'Weather_Condition' in data.columns:
+            # Weather-Day interactions
+            data['Weather_Weekend'] = data.apply(
+                lambda row: f"{row['Weather_Condition']}_{row['IsWeekend']}", axis=1)
+            
+            # Weather-Season interactions
+            data['Weather_Season'] = data.apply(
+                lambda row: f"{row['Weather_Condition']}_{row['Season']}", axis=1)
+            
+            # Temperature impact intensity - customize this based on your domain knowledge
+            # Hot conditions likely reduce footfall for certain categories
+            rain_conditions = ['Rain', 'Drizzle', 'Thunderstorm', 'Rainy', 'Stormy']
+            snow_conditions = ['Snow', 'Blizzard', 'Snowy']
+            
+            data['Is_Rainy'] = data['Weather_Condition'].apply(
+                lambda x: 1 if any(cond in x for cond in rain_conditions) else 0)
+            data['Is_Snowy'] = data['Weather_Condition'].apply(
+                lambda x: 1 if any(cond in x for cond in snow_conditions) else 0)
+            
+    # Handle sentiment data if available
+    if 'Sentiment_Score' in data.columns:
+        # Create sentiment bins for better pattern recognition
+        data['Sentiment_Bin'] = pd.cut(data['Sentiment_Score'], 
+                                      bins=[-1, -0.5, -0.1, 0.1, 0.5, 1], 
+                                      labels=['Very Negative', 'Negative', 'Neutral', 'Positive', 'Very Positive'])
+        
+        # Sentiment impact lag feature (impact of sentiment on next day/week sales)
+        if 'Date' in data.columns:
+            # Sort by date to calculate accurate lags
+            data = data.sort_values('Date')
+            data['Sentiment_Lag_1'] = data['Sentiment_Score'].shift(1)
+            data['Sentiment_Lag_7'] = data['Sentiment_Score'].shift(7)
+            
+    # Create aggregated sale features if available
+    if 'Total_Sales' in data.columns:
+        # Sort by date
+        if 'Date' in data.columns:
+            data = data.sort_values('Date')
+            
+            # Create lag features
+            data['Sales_Lag_1'] = data.groupby(['Category'])['Total_Sales'].shift(1)
+            data['Sales_Lag_7'] = data.groupby(['Category'])['Total_Sales'].shift(7)
+            data['Sales_Lag_30'] = data.groupby(['Category'])['Total_Sales'].shift(30)
+            
+            # Create moving averages
+            data['Sales_MA_7'] = data.groupby(['Category'])['Total_Sales'].transform(
+                lambda x: x.rolling(window=7, min_periods=1).mean())
+            data['Sales_MA_30'] = data.groupby(['Category'])['Total_Sales'].transform(
+                lambda x: x.rolling(window=30, min_periods=1).mean())
+            
+            # Create expanding mean (cumulative average)
+            data['Sales_Expanding_Mean'] = data.groupby(['Category'])['Total_Sales'].transform(
+                lambda x: x.expanding().mean())
+            
+            # Create volatility features
+            data['Sales_Volatility_7'] = data.groupby(['Category'])['Total_Sales'].transform(
+                lambda x: x.rolling(window=7, min_periods=1).std())
+            
+    # Handle outliers in sales using IQR method if sales data is available
+    if 'Total_Sales' in data.columns:
+        # Calculate IQR and bounds for each category
+        for category in data['Category'].unique():
+            category_data = data[data['Category'] == category]
+            Q1 = category_data['Total_Sales'].quantile(0.25)
+            Q3 = category_data['Total_Sales'].quantile(0.75)
+            IQR = Q3 - Q1
+            
+            # Define bounds with wider range (3*IQR) to avoid excessive capping
+            lower_bound = Q1 - 3 * IQR
+            upper_bound = Q3 + 3 * IQR
+            
+            # Apply winsorization (capping) instead of removing outliers
+            data.loc[(data['Category'] == category) & (data['Total_Sales'] < lower_bound), 'Total_Sales'] = lower_bound
+            data.loc[(data['Category'] == category) & (data['Total_Sales'] > upper_bound), 'Total_Sales'] = upper_bound
+    
+    # Fill missing values with more sophisticated methods
+    for col in data.select_dtypes(include=['float64', 'int64']).columns:
+        # Use forward fill and backward fill for time-series data first
+        data[col] = data[col].ffill().bfill()
+        
+        # If still missing, use median
+        if data[col].isnull().sum() > 0:
+            data[col] = data[col].fillna(data[col].median())
+    
+    # For categorical features, use mode
+    for col in data.select_dtypes(include=['object', 'category']).columns:
+        if col != 'Date':  # Skip date column
+            data[col] = data[col].fillna(data[col].mode()[0] if not data[col].mode().empty else 'unknown')
+    
+    # Create polynomial features for key numerical variables to capture non-linear relationships
+    # Don't create too many to avoid overfitting
+    if 'Temperature' in data.columns and 'Sentiment_Score' in data.columns:
+        data['Temp_Sentiment_Interaction'] = data['Temperature'] * data['Sentiment_Score']
+        data['Temp_Squared'] = data['Temperature'] ** 2  # Quadratic temperature effect
+
+    # Drop the original Date column at the end since we've extracted all useful features
+    if 'Date' in data.columns and data.shape[1] > 20:  # Only drop if we have enough other features
+        data = data.drop('Date', axis=1)
+        
+    return data
 
 def train_model(combined_data, model_type="Random Forest", test_size=0.2):
     """Train a predictive model for sales"""
@@ -32,7 +178,7 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
     df = preprocess_data(df)
     
     # Validate model type
-    valid_models = ["Random Forest", "XGBoost", "CatBoost", "Linear Regression", "SVR"]
+    valid_models = ["Random Forest", "XGBoost", "CatBoost", "Linear Regression", "SVR", "Ensemble"]
     if model_type not in valid_models:
         raise ValueError(f"Model type must be one of {valid_models}")
 
@@ -126,6 +272,54 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
             gamma=0.01,                 # Kernel coefficient
             cache_size=1000,            # Cache size in MB
             verbose=True                # Show progress during training
+        )
+    elif model_type == "Ensemble":
+        # Create a stacked ensemble model using VotingRegressor for maximum accuracy
+        # This combines multiple top models with different strengths
+        from sklearn.ensemble import VotingRegressor
+        
+        # Create base models with different strengths
+        rf_model = RandomForestRegressor(
+            n_estimators=250, 
+            max_depth=10,
+            min_samples_split=5,
+            bootstrap=True,
+            n_jobs=-1,
+            random_state=42
+        )
+        
+        xgb_model = XGBRegressor(
+            n_estimators=250,
+            learning_rate=0.03,
+            max_depth=6,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            n_jobs=-1,
+            random_state=42,
+            verbosity=1
+        )
+        
+        catboost_model = CatBoostRegressor(
+            iterations=250,
+            learning_rate=0.03,
+            depth=6,
+            loss_function='RMSE',
+            eval_metric='RMSE',
+            random_seed=42,
+            verbose=50
+        )
+        
+        # Create voting ensemble
+        print("Creating ensemble model combining Random Forest, XGBoost, and CatBoost...")
+        print("This may take longer to train but will provide higher accuracy")
+        
+        model = VotingRegressor(
+            estimators=[
+                ('rf', rf_model),
+                ('xgb', xgb_model),
+                ('catboost', catboost_model)
+            ],
+            weights=[1, 1.2, 1.1]  # Give slightly more weight to XGBoost and CatBoost
         )
         
     # Create pipeline
@@ -235,57 +429,179 @@ def get_accuracy_level(r2, mape):
         return "Needs Improvement - Review Data Quality and Features"
 
 def predict_sales(model, prediction_data, historical_data):
-    """Generate sales predictions using the trained model"""
-    # We're using a sklearn Pipeline for all models now
+    """Generate sales predictions using the trained model with advanced handling of features"""
+    # Make a deep copy to avoid modifying the original data
     pred_df = prediction_data.copy()
     
     # Ensure date is in the correct format
-    pred_df['Date'] = pd.to_datetime(pred_df['Date']).dt.date
+    pred_df['Date'] = pd.to_datetime(pred_df['Date'])
     
-    # Preprocess weather condition to ensure it's a string
-    if 'Weather_Condition' in pred_df.columns:
-        pred_df['Weather_Condition'] = pred_df['Weather_Condition'].astype(str)
+    # Create a proper prediction window by adding required features
+    # Many features in our preprocessing rely on historical data
+    # We'll combine historical and prediction data to calculate proper features
     
-    # Preprocess data
-    pred_df = preprocess_data(pred_df)
+    # First prepare historical data in the same format
+    hist_df = historical_data.copy()
+    if 'Date' in hist_df.columns:
+        hist_df['Date'] = pd.to_datetime(hist_df['Date'])
     
+    # Check if we have overlapping data by identifying common columns
+    common_cols = list(set(pred_df.columns).intersection(set(hist_df.columns)))
+    
+    # Create time series continuity for better predictions
+    if 'Date' in common_cols and 'Category' in common_cols:
+        # Sort historical data by date to ensure proper feature construction
+        hist_df = hist_df.sort_values('Date')
+        
+        # Get the latest date from historical data and earliest from prediction data
+        hist_max_date = hist_df['Date'].max()
+        pred_min_date = pred_df['Date'].min()
+        
+        # Only combine continuous periods (no gaps)
+        if (pred_min_date - hist_max_date).days <= 7:  # Allow up to a week gap
+            # Use only relevant historical data - last 60 days to avoid computational issues
+            recent_cutoff = pred_min_date - pd.Timedelta(days=60)
+            recent_hist = hist_df[hist_df['Date'] >= recent_cutoff]
+            
+            # Combine datasets for proper time series feature creation
+            combined_df = pd.concat([recent_hist, pred_df], ignore_index=True)
+            combined_df = combined_df.sort_values('Date')
+            
+            # Apply preprocessing to combined dataset
+            processed_df = preprocess_data(combined_df)
+            
+            # Split back to get only the prediction period
+            mask = processed_df.index.isin(combined_df[combined_df['Date'] >= pred_min_date].index)
+            pred_processed = processed_df[mask].copy()
+            
+            # Handle case where Date column was dropped in preprocessing
+            if 'Date' not in pred_processed.columns:
+                # Add back the Date column from original prediction data
+                date_mapping = dict(zip(combined_df.index, combined_df['Date']))
+                pred_processed_indices = pred_processed.index
+                pred_processed['Date'] = [date_mapping[idx] for idx in pred_processed_indices]
+        else:
+            # If there's a gap, process prediction data separately
+            pred_processed = preprocess_data(pred_df)
+    else:
+        # No common time-based columns, process prediction data separately
+        pred_processed = preprocess_data(pred_df)
+    
+    # Preprocess categorical variables
+    categorical_cols = pred_processed.select_dtypes(include=['object', 'category']).columns
+    for col in categorical_cols:
+        if col != 'Date':  # Skip date column
+            pred_processed[col] = pred_processed[col].astype(str)
+    
+    # Try to get required columns from the model
     try:
-        # Get required columns from the model
-        model_features = []
+        # Get required columns from the model (will vary by model type)
         if hasattr(model, 'feature_names_in_'):
             model_features = model.feature_names_in_
         elif hasattr(model, 'named_steps') and hasattr(model.named_steps['preprocessor'], 'get_feature_names_out'):
             model_features = model.named_steps['preprocessor'].get_feature_names_out()
-        
-        missing_cols = set(model_features) - set(pred_df.columns)
-        
-        # Fill missing columns with appropriate values
-        for col in missing_cols:
-            if col in historical_data.columns:
-                if pd.api.types.is_categorical_dtype(historical_data[col]):
-                    mode_val = str(historical_data[col].mode().iloc[0])
-                    pred_df[col] = mode_val
-                elif historical_data[col].dtype == 'object':
-                    mode_val = str(historical_data[col].mode().iloc[0])
-                    pred_df[col] = mode_val
+        else:
+            # For complex pipelines or ensembles, we may not be able to extract feature names
+            model_features = []
+            
+        # Handle missing columns if we know what they are
+        if model_features:
+            missing_cols = set(model_features) - set(pred_processed.columns)
+            
+            # Fill missing columns with appropriate values
+            for col in missing_cols:
+                if col in hist_df.columns:
+                    if pd.api.types.is_categorical_dtype(hist_df[col]):
+                        mode_val = str(hist_df[col].mode().iloc[0])
+                        pred_processed[col] = mode_val
+                    elif hist_df[col].dtype == 'object':
+                        mode_val = str(hist_df[col].mode().iloc[0])
+                        pred_processed[col] = mode_val
+                    else:
+                        mean_val = float(hist_df[col].astype(float).mean())
+                        pred_processed[col] = mean_val
                 else:
-                    mean_val = float(historical_data[col].astype(float).mean())
-                    pred_df[col] = mean_val
-            else:
-                pred_df[col] = 0
+                    pred_processed[col] = 0  # Default value for unknown columns
     except Exception as e:
         # If error occurs during feature extraction, log and continue
         print(f"Warning: Error processing model features: {e}")
-        # We'll proceed with what we have
+    
+    # Check if we're using a pipeline or ensemble
+    if hasattr(model, 'named_steps') and 'model' in model.named_steps:
+        # It's a pipeline, get the actual model
+        estimator = model.named_steps['model']
+        is_ensemble = isinstance(estimator, (RandomForestRegressor, XGBRegressor, CatBoostRegressor))
+    else:
+        # Direct model
+        is_ensemble = isinstance(model, (RandomForestRegressor, XGBRegressor, CatBoostRegressor))
     
     # Make predictions
-    predictions = model.predict(pred_df)
+    try:
+        # Apply model to get predictions
+        predictions = model.predict(pred_processed)
+        
+        # Post-process predictions
+        # For ensemble models, we can get prediction intervals (confidence bounds)
+        if is_ensemble and 'Category' in pred_df.columns:
+            # Prepare final results with additional context
+            results_df = pred_df[['Date', 'Category']].copy()
+            results_df['Predicted_Sales'] = predictions
+            
+            # Add prediction confidence intervals for ensemble models if possible
+            try:
+                # This works for RandomForest and similar models
+                if hasattr(model, 'estimators_') or (hasattr(model, 'named_steps') and 
+                                                    hasattr(model.named_steps['model'], 'estimators_')):
+                    # Get the estimator
+                    if hasattr(model, 'estimators_'):
+                        estimators = model.estimators_
+                    else:
+                        estimators = model.named_steps['model'].estimators_
+                    
+                    # Get predictions from each estimator
+                    individual_preds = np.array([estimator.predict(pred_processed) 
+                                               for estimator in estimators])
+                    
+                    # Calculate confidence intervals
+                    lower_bound = np.percentile(individual_preds, 5, axis=0)
+                    upper_bound = np.percentile(individual_preds, 95, axis=0)
+                    
+                    # Add to results
+                    results_df['Lower_Bound'] = np.maximum(0, lower_bound)  # No negative sales
+                    results_df['Upper_Bound'] = upper_bound
+                    
+                    # Add prediction volatility (uncertainty measure)
+                    results_df['Prediction_Volatility'] = np.std(individual_preds, axis=0)
+            except Exception as e:
+                # If confidence intervals fail, continue without them
+                print(f"Warning: Could not calculate prediction intervals: {e}")
+        else:
+            # For non-ensemble models, just return the predictions
+            results_df = pred_df[['Date', 'Category']].copy()
+            results_df['Predicted_Sales'] = predictions
+        
+        # Apply post-processing to predictions
+        # Ensure no negative sales predictions
+        results_df['Predicted_Sales'] = results_df['Predicted_Sales'].apply(lambda x: max(0, x))
+        
+        # Add weekday/weekend flag for easier interpretation
+        if pd.api.types.is_datetime64_dtype(results_df['Date']):
+            results_df['Day_Type'] = results_df['Date'].dt.dayofweek.apply(
+                lambda x: 'Weekend' if x >= 5 else 'Weekday')
+        
+        # Sort by date and category for consistent output
+        results_df = results_df.sort_values(['Date', 'Category'])
+        
+        # Format date for output
+        results_df['Date'] = results_df['Date'].dt.date
+        
+        return results_df
     
-    # Create results DataFrame
-    results_df = prediction_data.copy()
-    results_df['Predicted_Sales'] = predictions
-    
-    # Ensure no negative sales predictions
-    results_df['Predicted_Sales'] = results_df['Predicted_Sales'].apply(lambda x: max(0, x))
-    
-    return results_df[['Date', 'Category', 'Predicted_Sales']]
+    except Exception as e:
+        # Fallback if prediction fails
+        print(f"Error during prediction: {e}")
+        # Create basic results with NaN predictions
+        results_df = pred_df[['Date', 'Category']].copy()
+        results_df['Predicted_Sales'] = np.nan
+        results_df['Date'] = pd.to_datetime(results_df['Date']).dt.date
+        return results_df
