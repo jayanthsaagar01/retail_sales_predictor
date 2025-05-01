@@ -1,6 +1,6 @@
-# Setting Up the Sales Prediction App on Mac (Apple Silicon)
+# Setting Up the Retail Forecaster App on Mac (Apple Silicon)
 
-This guide will help you set up and run the Sales Prediction Application on your Mac with Apple Silicon (M1/M2/M3).
+This guide will help you set up and run the Retail Forecaster Application on your Mac with Apple Silicon (M1/M2/M3).
 
 ## Requirements
 
@@ -102,7 +102,7 @@ To make it easier to run the app in the future, create a shell script named `run
 
 ```bash
 #!/bin/bash
-# run_app.sh - Script to run the Sales Prediction Application
+# run_app.sh - Script to run the Retail Forecaster Application
 
 # Check if virtual environment exists, if not create one
 if [ ! -d "venv" ]; then
@@ -145,8 +145,8 @@ If you encounter issues with any packages, try installing them with conda:
 brew install --cask miniconda
 
 # Create and activate conda environment
-conda create -n sales_prediction python=3.11
-conda activate sales_prediction
+conda create -n retail_forecaster python=3.11
+conda activate retail_forecaster
 
 # Install packages using conda
 conda install -c conda-forge joblib matplotlib numpy pandas scikit-learn seaborn sqlalchemy streamlit xgboost
@@ -158,7 +158,7 @@ If the SQLite database doesn't work correctly:
 
 ```bash
 # Reset the database
-rm sales_prediction.db
+rm retail_forecaster.db
 ```
 
 The application will regenerate the database tables on the next start.
