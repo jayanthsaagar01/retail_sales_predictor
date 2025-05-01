@@ -25,19 +25,51 @@ def preprocess_data(df):
     for col in data.select_dtypes(include=['object']).columns:
         data[col] = data[col].apply(lambda x: str(x) if isinstance(x, list) else x)
     
-    # Ensure Date is in datetime format with robust error handling
+    # Ensure Date is in datetime format with advanced robust error handling
     if 'Date' in data.columns:
         try:
-            # Handle various date formats with error handling
+            # Make a copy of the original date column before transformations
+            original_dates = data['Date'].copy()
+            
+            # First, try standard conversion with coerce to identify problematic values
             data['Date'] = pd.to_datetime(data['Date'], errors='coerce')
             
-            # Check for NULL dates after conversion
+            # Check for NULL dates after conversion and provide detailed diagnostics
             if data['Date'].isnull().any():
-                print(f"Warning: Found {data['Date'].isnull().sum()} invalid dates. Will attempt repair.")
-                # Try to extract date part for any timestamp strings that failed conversion
-                string_dates = data.loc[data['Date'].isnull(), 'Date'].astype(str)
-                fixed_dates = pd.to_datetime(string_dates.str.split(' ').str[0], errors='coerce')
+                null_count = data['Date'].isnull().sum()
+                print(f"Warning: Found {null_count} invalid dates. Will attempt repair.")
+                
+                # Get problematic values for diagnostics
+                problematic_values = original_dates[data['Date'].isnull()].tolist()[:5]
+                if problematic_values:
+                    print(f"Examples of problematic date values: {problematic_values}")
+                
+                # Multi-stage date parsing for maximum compatibility:
+                
+                # 1. Try extracting just the date part if there are timestamps
+                string_dates = original_dates[data['Date'].isnull()].astype(str)
+                # Extract date-like pattern YYYY-MM-DD or MM/DD/YYYY etc.
+                fixed_dates = pd.to_datetime(string_dates.str.extract(r'(\d{2,4}[-/]\d{1,2}[-/]\d{1,4})', expand=False), errors='coerce')
                 data.loc[data['Date'].isnull(), 'Date'] = fixed_dates
+                
+                # 2. For timestamps like "2023-06-30 08:39:32.226003968", extract just date part
+                if data['Date'].isnull().any():
+                    string_dates = original_dates[data['Date'].isnull()].astype(str)
+                    # Split on space and take first part
+                    date_parts = string_dates.str.split(' ').str[0]
+                    fixed_dates = pd.to_datetime(date_parts, errors='coerce')
+                    data.loc[data['Date'].isnull(), 'Date'] = fixed_dates
+                
+                # 3. For Excel dates which might be numeric
+                if data['Date'].isnull().any():
+                    numeric_mask = data['Date'].isnull() & original_dates.apply(lambda x: isinstance(x, (int, float)))
+                    if numeric_mask.any():
+                        from datetime import datetime, timedelta
+                        # Convert Excel serial dates (days since 1900-01-01)
+                        excel_base = datetime(1899, 12, 30)  # Excel's day 0
+                        data.loc[numeric_mask, 'Date'] = original_dates[numeric_mask].apply(
+                            lambda x: excel_base + timedelta(days=int(x)) if not pd.isnull(x) else pd.NaT
+                        )
             
             # If any dates are still null after repair attempts, use a sensible approach (forward fill then backward fill)
             if data['Date'].isnull().any():

@@ -605,9 +605,9 @@ def sales_prediction_page():
                     'Value': [
                         metrics.get('accuracy_level', 'Not Available'),
                         f"{metrics['r2']:.4f}",
-                        f"{metrics['mae']:.2f}",
-                        f"{metrics['mse']:.2f}",
-                        f"{metrics['rmse']:.2f}",
+                        f"₹{metrics['mae']:,.2f}",
+                        f"₹{metrics['mse']:,.2f}",
+                        f"₹{metrics['rmse']:,.2f}",
                         f"{metrics['mape']:.2f}%"
                     ],
                     'Description': [
@@ -633,6 +633,36 @@ def sales_prediction_page():
                     st.write("Consider using more data, feature engineering, or a different model type.")
 
                 st.dataframe(metrics_df)
+                
+                # Add guidance on how to tune uploads for better model performance
+                with st.expander("📈 How to Improve Model Accuracy"):
+                    st.markdown("""
+                    ### Tips for Improving Model Accuracy
+                    
+                    To achieve better model accuracy and lower error rates:
+                    
+                    #### 1. Data Quality Improvements
+                    - **More historical data**: Upload at least 6-12 months of daily sales data
+                    - **Consistent categories**: Use the same category names across all entries
+                    - **Complete data**: Avoid missing values in sales, dates, or categories
+                    - **Proper formats**: Ensure dates are in YYYY-MM-DD format
+                    
+                    #### 2. Feature Selection
+                    - **Relevant keywords**: Use brand-specific and product-specific keywords for sentiment
+                    - **Correct location**: Provide the actual store location for accurate weather data
+                    - **Add promotions**: Note any sales promotions in your data for better predictions
+                    
+                    #### 3. Model Selection
+                    - For small datasets (< 1000 rows): Try Linear Regression or SVR
+                    - For medium datasets: Random Forest often works well
+                    - For large, complex datasets: Try XGBoost or Ensemble
+                    - For categorical-heavy data: CatBoost typically performs best
+                    
+                    #### 4. Common Issues
+                    - **High MAPE** (> 50%): Usually indicates inconsistent sales patterns or outliers
+                    - **Low R²** (< 0.5): Suggests the model isn't capturing important factors
+                    - **High MSE**: Check for extreme outliers in your sales data
+                    """)
                 
                 # Show feature importance visualization
                 st.subheader("What Factors Affect Sales the Most?")
