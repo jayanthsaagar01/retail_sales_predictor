@@ -534,41 +534,29 @@ def sales_prediction_page():
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.subheader("Train Prediction Model")
-
-        # Model parameters
-        st.markdown("### Model Parameters")
-
-        # First, show model options with descriptions
-        st.markdown("""
-        ### Available Models
+        st.subheader("Predict Sales")
         
-        - **Random Forest**: Best for structured tabular data and nonlinear relationships. Robust and interpretable, but lacks temporal awareness.
-        - **XGBoost**: Excellent for large datasets with many features. High performance and handles missing data well.
-        - **CatBoost**: Optimized for categorical-heavy datasets. Works well with minimal preprocessing.
-        - **Linear Regression**: Good for small datasets and fast inference. Works best with linear relationships.
-        - **SVR (Support Vector Regression)**: Effective for medium-sized datasets. Handles non-linear relationships well.
+        # Simple instructions for users
+        st.markdown("""
+        ### Automatic Ensemble Model
+        
+        Our system uses a powerful ensemble model that combines multiple algorithms for maximum accuracy:
+        
+        - Random Forest for capturing non-linear patterns
+        - XGBoost for high-performance prediction
+        - CatBoost for optimizing categorical features
+        
+        This combined approach produces more reliable predictions than any single model.
         """)
         
-        model_type = st.selectbox(
-            "Select Model Type",
-            options=["Random Forest", "XGBoost", "CatBoost", "Linear Regression", "SVR", "Ensemble"],
-            help="""
-            - Random Forest: Best for mixed numerical and categorical data with non-linear patterns
-            - XGBoost: High performance on large datasets with complex relationships
-            - CatBoost: Best when you have many categorical features
-            - Linear Regression: Simple model for smaller datasets with clear linear trends
-            - SVR: Good for complex patterns with smaller datasets
-            - Ensemble: Combines multiple models for highest accuracy (slower to train)
-            """
-        )
-
-        test_size = st.slider("Test Data Size (%)", 10, 40, 20) / 100
-
-        # Train model button
-        if st.button("Train Model"):
+        # Hidden test size, always using 20%
+        test_size = 0.2
+        
+        # Train model button with clearer label
+        if st.button("Generate Sales Predictions"):
             with st.spinner("Training model..."):
-                # Train model
+                # Always use the Ensemble model
+                model_type = "Ensemble"
                 model, X_train, X_test, y_train, y_test, metrics = train_model(
                     st.session_state.combined_data,
                     model_type,
@@ -595,73 +583,21 @@ def sales_prediction_page():
                 else:
                     st.success("Model trained successfully!")
 
-                # Display model metrics
-                st.subheader("Model Performance Metrics")
-
-                metrics_df = pd.DataFrame({
-                    'Metric': ['Model Accuracy Assessment', 'R² Score', 'Mean Absolute Error (MAE)', 
-                              'Mean Squared Error (MSE)', 'Root Mean Squared Error (RMSE)', 
-                              'Mean Absolute Percentage Error (MAPE)'],
-                    'Value': [
-                        metrics.get('accuracy_level', 'Not Available'),
-                        f"{metrics['r2']:.4f}",
-                        f"₹{metrics['mae']:,.2f}",
-                        f"₹{metrics['mse']:,.2f}",
-                        f"₹{metrics['rmse']:,.2f}",
-                        f"{metrics['mape']:.2f}%"
-                    ],
-                    'Description': [
-                        "Overall model quality assessment",
-                        "Proportion of variance explained (1 is perfect)",
-                        "Average absolute difference between predicted and actual sales",
-                        "Penalizes large errors more heavily",
-                        "Similar to MSE, but in original units",
-                        "Percentage error (lower is better)"
-                    ]
-                })
+                # Just show a success message - no detailed metrics
+                st.success("🚀 Model trained successfully! You can now generate predictions below.")
                 
-                # Highlight the model accuracy assessment with a color based on its value
-                accuracy_level = metrics.get('accuracy_level', '').lower()
-                if 'excellent' in accuracy_level:
-                    st.success(f"✅ Model Accuracy: {metrics.get('accuracy_level')}")
-                elif 'very good' in accuracy_level or 'good' in accuracy_level:
-                    st.info(f"✓ Model Accuracy: {metrics.get('accuracy_level')}")
-                elif 'fair' in accuracy_level or 'moderate' in accuracy_level:
-                    st.warning(f"⚠️ Model Accuracy: {metrics.get('accuracy_level')}")
-                elif 'needs improvement' in accuracy_level:
-                    st.error(f"⛔ Model Accuracy: {metrics.get('accuracy_level')}")
-                    st.write("Consider using more data, feature engineering, or a different model type.")
-
-                st.dataframe(metrics_df)
-                
-                # Add guidance on how to tune uploads for better model performance
-                with st.expander("📈 How to Improve Model Accuracy"):
+                # Add a simple help section
+                with st.expander("📋 Tips for Better Predictions"):
                     st.markdown("""
-                    ### Tips for Improving Model Accuracy
+                    ### Tips for Better Predictions
                     
-                    To achieve better model accuracy and lower error rates:
+                    For the most accurate sales predictions:
                     
-                    #### 1. Data Quality Improvements
-                    - **More historical data**: Upload at least 6-12 months of daily sales data
-                    - **Consistent categories**: Use the same category names across all entries
-                    - **Complete data**: Avoid missing values in sales, dates, or categories
-                    - **Proper formats**: Ensure dates are in YYYY-MM-DD format
-                    
-                    #### 2. Feature Selection
-                    - **Relevant keywords**: Use brand-specific and product-specific keywords for sentiment
-                    - **Correct location**: Provide the actual store location for accurate weather data
-                    - **Add promotions**: Note any sales promotions in your data for better predictions
-                    
-                    #### 3. Model Selection
-                    - For small datasets (< 1000 rows): Try Linear Regression or SVR
-                    - For medium datasets: Random Forest often works well
-                    - For large, complex datasets: Try XGBoost or Ensemble
-                    - For categorical-heavy data: CatBoost typically performs best
-                    
-                    #### 4. Common Issues
-                    - **High MAPE** (> 50%): Usually indicates inconsistent sales patterns or outliers
-                    - **Low R²** (< 0.5): Suggests the model isn't capturing important factors
-                    - **High MSE**: Check for extreme outliers in your sales data
+                    - Upload at least 6-12 months of daily sales data
+                    - Include complete data for all categories
+                    - Use precise location information for weather data
+                    - Include brand-specific keywords for sentiment analysis
+                    - Note any special promotions or events in your data
                     """)
                 
                 # Show feature importance visualization
