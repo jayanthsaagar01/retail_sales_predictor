@@ -1,6 +1,6 @@
-# Setting Up the Sales Prediction App on Windows
+# Setting Up the Retail Forecaster App on Windows
 
-This guide will help you set up and run the Sales Prediction Application on Windows.
+This guide will help you set up and run the Retail Forecaster Application on Windows.
 
 ## Requirements
 
@@ -86,7 +86,7 @@ To make it easier to run the app in the future, create a batch script named `run
 
 ```batch
 @echo off
-:: run_app.bat - Script to run the Sales Prediction Application on Windows
+:: run_app.bat - Script to run the Retail Forecaster Application on Windows
 
 echo Checking for virtual environment...
 if not exist venv (
@@ -122,7 +122,7 @@ if "%OPENWEATHERMAP_API_KEY%"=="" (
 )
 
 :: Run the application
-echo Starting Sales Prediction Application...
+echo Starting Retail Forecaster Application...
 streamlit run app.py
 
 :: Deactivate the virtual environment when done
@@ -148,7 +148,7 @@ If the SQLite database doesn't work correctly:
 
 ```powershell
 # Reset the database
-Remove-Item sales_prediction.db
+Remove-Item retail_forecaster.db
 ```
 
 The application will regenerate the database tables on the next start.

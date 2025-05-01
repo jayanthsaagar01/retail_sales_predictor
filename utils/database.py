@@ -6,7 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Create database engine
-engine = create_engine('sqlite:///sales_prediction.db')
+engine = create_engine('sqlite:///retail_forecaster.db')
 Base = declarative_base()
 Session = sessionmaker(bind=engine)
 
