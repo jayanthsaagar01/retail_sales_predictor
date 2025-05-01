@@ -61,9 +61,16 @@ class Model(Base):
     created_at = Column(Date, default=datetime.datetime.now)
 
 def create_tables():
-    """Drop all tables and create them again"""
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    """Create tables if they don't exist"""
+    # First check if database has been initialized 
+    # Don't drop tables that may already exist
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    
+    if not inspector.has_table('models'):  
+        # If 'models' table doesn't exist, create all tables
+        Base.metadata.create_all(engine)
+    # Otherwise, do nothing - tables already exist
 
 def init_db():
     """Create all tables in the database"""
