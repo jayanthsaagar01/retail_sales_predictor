@@ -48,7 +48,7 @@ def get_weather_data(location, start_date, end_date):
             # For a production app, you would need to handle this more efficiently
             selected_dates = get_date_subset(date_range, max_dates=10)
             
-            for date in sample_dates:
+            for date in selected_dates:
                 date_str = date.strftime("%Y-%m-%d")
                 
                 # OpenWeatherMap historical data endpoint
@@ -83,7 +83,7 @@ def get_weather_data(location, start_date, end_date):
                     })
             
             # Interpolate for missing dates
-            if len(sample_dates) < len(date_range):
+            if len(selected_dates) < len(date_range):
                 weather_df = pd.DataFrame(weather_data)
                 
                 # Create a complete DataFrame with all dates
