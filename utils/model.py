@@ -1,12 +1,13 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, RobustScaler
+from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.svm import SVR
 # Make sure to install CatBoost with: pip install catboost
 from catboost import CatBoostRegressor
@@ -48,12 +49,23 @@ def train_model(combined_data, model_type="Random Forest", test_size=0.2):
     categorical_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
     numerical_features = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
 
-    # Create preprocessing pipeline
+    # Create enhanced preprocessing pipeline with improved feature handling
+    numeric_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='median')),  # Handle missing values
+        ('scaler', RobustScaler())  # More robust to outliers than StandardScaler
+    ])
+    
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),  # Handle missing values
+        ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
+    ])
+    
     preprocessor = ColumnTransformer(
         transformers=[
-            ('num', StandardScaler(), numerical_features),
-            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
-        ]
+            ('num', numeric_transformer, numerical_features),
+            ('cat', categorical_transformer, categorical_features)
+        ],
+        remainder='passthrough'  # Include any other columns
     )
 
     # Select model based on user choice

@@ -144,7 +144,7 @@ def plot_weather_impact(data, weather_metric='Temperature'):
         )
 
         # Calculate average sales by temperature range and category
-        grouped_data = data.groupby(['Temp_Range', 'Category'])['Total_Sales'].mean().reset_index()
+        grouped_data = data.groupby(['Temp_Range', 'Category'], observed=True)['Total_Sales'].mean().reset_index()
 
         # Pivot data
         pivot_data = grouped_data.pivot(index='Temp_Range', columns='Category', values='Total_Sales')
@@ -163,10 +163,14 @@ def plot_weather_impact(data, weather_metric='Temperature'):
         
         # Add emoji indicators
         emojis = ['❄️', '🥶', '🧥', '☀️', '🔥']
-        for i, emoji in enumerate(emojis):
-            if i < len(pivot_data.index):
-                ax.annotate(emoji, xy=(i, -max(pivot_data.values.max()) * 0.05), 
-                           ha='center', fontsize=20)
+        
+        # Check if we have data to display emojis
+        if not pivot_data.empty and len(pivot_data.index) > 0:
+            y_min = ax.get_ylim()[0]
+            for i, emoji in enumerate(emojis):
+                if i < len(pivot_data.index):
+                    ax.annotate(emoji, xy=(i, y_min * 0.9), 
+                               ha='center', fontsize=20)
 
     elif weather_metric == 'Precipitation':
         # Group data by precipitation ranges
@@ -177,7 +181,7 @@ def plot_weather_impact(data, weather_metric='Temperature'):
         )
 
         # Calculate average sales by precipitation range and category
-        grouped_data = data.groupby(['Precip_Range', 'Category'])['Total_Sales'].mean().reset_index()
+        grouped_data = data.groupby(['Precip_Range', 'Category'], observed=True)['Total_Sales'].mean().reset_index()
 
         # Pivot data
         pivot_data = grouped_data.pivot(index='Precip_Range', columns='Category', values='Total_Sales')
@@ -196,14 +200,18 @@ def plot_weather_impact(data, weather_metric='Temperature'):
         
         # Add emoji indicators
         emojis = ['☀️', '🌦️', '🌧️', '⛈️', '🌊']
-        for i, emoji in enumerate(emojis):
-            if i < len(pivot_data.index):
-                ax.annotate(emoji, xy=(i, -max(pivot_data.values.max()) * 0.05), 
-                           ha='center', fontsize=20)
+        
+        # Check if we have data to display emojis
+        if not pivot_data.empty and len(pivot_data.index) > 0:
+            y_min = ax.get_ylim()[0]
+            for i, emoji in enumerate(emojis):
+                if i < len(pivot_data.index):
+                    ax.annotate(emoji, xy=(i, y_min * 0.9), 
+                               ha='center', fontsize=20)
 
     elif weather_metric == 'Weather_Condition':
         # Calculate average sales by weather condition and category
-        grouped_data = data.groupby(['Weather_Condition', 'Category'])['Total_Sales'].mean().reset_index()
+        grouped_data = data.groupby(['Weather_Condition', 'Category'], observed=True)['Total_Sales'].mean().reset_index()
 
         # Pivot data
         pivot_data = grouped_data.pivot(index='Weather_Condition', columns='Category', values='Total_Sales')
@@ -229,10 +237,13 @@ def plot_weather_impact(data, weather_metric='Temperature'):
             'Stormy': '⛈️'
         }
         
-        for i, weather in enumerate(pivot_data.index):
-            emoji = weather_emojis.get(weather, '🌡️')
-            ax.annotate(emoji, xy=(i, -max(pivot_data.values.max()) * 0.05), 
-                       ha='center', fontsize=20)
+        # Check if we have data to display emojis
+        if not pivot_data.empty and len(pivot_data.index) > 0:
+            y_min = ax.get_ylim()[0]
+            for i, weather in enumerate(pivot_data.index):
+                emoji = weather_emojis.get(weather, '🌡️')
+                ax.annotate(emoji, xy=(i, y_min * 0.9), 
+                           ha='center', fontsize=20)
 
     ax.grid(True, alpha=0.3, axis='y')
     legend = ax.legend(title='Products', fontsize=12, title_fontsize=14)
@@ -280,7 +291,7 @@ def plot_sentiment_impact(data):
     )
 
     # Calculate average sales by sentiment range and category
-    grouped_data = data.groupby(['Sentiment_Range', 'Category'])['Total_Sales'].mean().reset_index()
+    grouped_data = data.groupby(['Sentiment_Range', 'Category'], observed=True)['Total_Sales'].mean().reset_index()
 
     # Pivot data
     pivot_data = grouped_data.pivot(index='Sentiment_Range', columns='Category', values='Total_Sales')
@@ -334,6 +345,10 @@ def plot_sales_forecast(historical_data, predicted_data):
     """
     fig, ax = plt.subplots(figsize=(12, 7))
 
+    # Ensure Date columns are datetime
+    historical_data['Date'] = pd.to_datetime(historical_data['Date'])
+    predicted_data['Date'] = pd.to_datetime(predicted_data['Date'])
+
     # Group historical data by date
     historical_grouped = historical_data.groupby('Date')['Total_Sales'].sum().reset_index()
 
@@ -364,55 +379,67 @@ def plot_sales_forecast(historical_data, predicted_data):
     )
 
     # Add shaded area to distinguish historical from predicted with better color
-    min_y = min(historical_grouped['Total_Sales'].min(), predicted_grouped['Predicted_Sales'].min()) * 0.9
-    max_y = max(historical_grouped['Total_Sales'].max(), predicted_grouped['Predicted_Sales'].max()) * 1.1
+    if not historical_grouped.empty and not predicted_grouped.empty:
+        min_y = min(
+            historical_grouped['Total_Sales'].min() if not historical_grouped.empty else 0, 
+            predicted_grouped['Predicted_Sales'].min() if not predicted_grouped.empty else 0
+        ) * 0.9
+        
+        max_y = max(
+            historical_grouped['Total_Sales'].max() if not historical_grouped.empty else 0, 
+            predicted_grouped['Predicted_Sales'].max() if not predicted_grouped.empty else 0
+        ) * 1.1
 
-    last_historical_date = historical_grouped['Date'].max()
+        if not historical_grouped.empty and not predicted_grouped.empty:
+            last_historical_date = historical_grouped['Date'].max()
 
-    # Add more clear division between past and future
-    ax.axvspan(last_historical_date, predicted_grouped['Date'].max(), alpha=0.15, color='#ffcc99')
-    ax.axvline(last_historical_date, linestyle='--', color='#ff6600', linewidth=2)
+            # Add more clear division between past and future
+            ax.axvspan(last_historical_date, predicted_grouped['Date'].max(), alpha=0.15, color='#ffcc99')
+            ax.axvline(last_historical_date, linestyle='--', color='#ff6600', linewidth=2)
 
-    # Add clearer labels for past and future
-    ax.text(
-        historical_grouped['Date'].iloc[len(historical_grouped) // 2], 
-        max_y * 0.9, 
-        'PAST', 
-        ha='center', 
-        fontsize=14, 
-        color='#0066cc',
-        fontweight='bold',
-        bbox={'facecolor':'white', 'alpha':0.8, 'pad':5, 'boxstyle':'round'}
-    )
-    
-    ax.text(
-        predicted_grouped['Date'].iloc[len(predicted_grouped) // 2], 
-        max_y * 0.9, 
-        'FUTURE', 
-        ha='center', 
-        fontsize=14, 
-        color='#ff6600',
-        fontweight='bold',
-        bbox={'facecolor':'white', 'alpha':0.8, 'pad':5, 'boxstyle':'round'}
-    )
+            # Add clearer labels for past and future
+            if len(historical_grouped) > 1:
+                ax.text(
+                    historical_grouped['Date'].iloc[len(historical_grouped) // 2], 
+                    max_y * 0.9, 
+                    'PAST', 
+                    ha='center', 
+                    fontsize=14, 
+                    color='#0066cc',
+                    fontweight='bold',
+                    bbox={'facecolor':'white', 'alpha':0.8, 'pad':5, 'boxstyle':'round'}
+                )
+            
+            if len(predicted_grouped) > 1:
+                ax.text(
+                    predicted_grouped['Date'].iloc[len(predicted_grouped) // 2], 
+                    max_y * 0.9, 
+                    'FUTURE', 
+                    ha='center', 
+                    fontsize=14, 
+                    color='#ff6600',
+                    fontweight='bold',
+                    bbox={'facecolor':'white', 'alpha':0.8, 'pad':5, 'boxstyle':'round'}
+                )
 
-    # Annotate last real value and first predicted value
-    last_actual = historical_grouped['Total_Sales'].iloc[-1]
-    first_predicted = predicted_grouped['Predicted_Sales'].iloc[0]
-    
-    ax.annotate(f'Last actual: ₹{int(last_actual):,}',
-               xy=(last_historical_date, last_actual),
-               xytext=(-100, 30),
-               textcoords='offset points',
-               arrowprops=dict(arrowstyle='->'),
-               fontsize=10)
-    
-    ax.annotate(f'First prediction: ₹{int(first_predicted):,}',
-               xy=(predicted_grouped['Date'].iloc[0], first_predicted),
-               xytext=(30, 30),
-               textcoords='offset points',
-               arrowprops=dict(arrowstyle='->'),
-               fontsize=10)
+            # Annotate last real value and first predicted value
+            if not historical_grouped.empty and len(historical_grouped) > 0:
+                last_actual = historical_grouped['Total_Sales'].iloc[-1]
+                ax.annotate(f'Last actual: ₹{int(last_actual):,}',
+                           xy=(last_historical_date, last_actual),
+                           xytext=(-100, 30),
+                           textcoords='offset points',
+                           arrowprops=dict(arrowstyle='->'),
+                           fontsize=10)
+            
+            if not predicted_grouped.empty and len(predicted_grouped) > 0:
+                first_predicted = predicted_grouped['Predicted_Sales'].iloc[0]
+                ax.annotate(f'First prediction: ₹{int(first_predicted):,}',
+                           xy=(predicted_grouped['Date'].iloc[0], first_predicted),
+                           xytext=(30, 30),
+                           textcoords='offset points',
+                           arrowprops=dict(arrowstyle='->'),
+                           fontsize=10)
 
     ax.set_title('What We Expect to Sell in the Future', fontsize=18, fontweight='bold')
     ax.set_xlabel('Date', fontsize=14)
