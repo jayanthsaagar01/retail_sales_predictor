@@ -1,0 +1,15 @@
+# Main configuration file for Retail Forecaster
+# This replaces the .replit configuration
+
+[environment]
+PYTHONPATH = "${PYTHONPATH}:${HOME}/workspace"
+
+[server]
+port = 5000
+host = "0.0.0.0"
+
+[application]
+name = "Retail Forecaster"
+version = "1.0.0"
+description = "A machine learning application for retail sales forecasting"
+main = "app.py"
