@@ -671,8 +671,8 @@ def my_models_page():
 
         if st.button("Load Model"):
             with st.spinner("Loading model..."):
-                # Load model from Firebase Storage
-                model = load_model_from_firebase(selected_model, st.session_state.user_id)
+                # Load model from local database
+                model = load_model(selected_model, st.session_state.user_id)
 
                 if model:
                     st.session_state.model = {

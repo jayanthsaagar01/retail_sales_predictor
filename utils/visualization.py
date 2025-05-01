@@ -6,7 +6,8 @@ from matplotlib.colors import LinearSegmentedColormap
 
 def plot_sales_trend(data):
     """
-    Plot sales trends over time by category
+    Plot sales trends over time by category with simplified visualization
+    for easier understanding even for non-technical users
 
     Parameters:
     -----------
@@ -26,16 +27,40 @@ def plot_sales_trend(data):
     # Pivot to have categories as columns
     pivot_data = grouped_data.pivot(index='Date', columns='Category', values='Total_Sales')
 
-    # Plot each category
-    pivot_data.plot(ax=ax, marker='o', markersize=4, linewidth=2)
+    # Set a colorful, distinguishable palette
+    colors = ['#FF9671', '#845EC2', '#00C2A8', '#F9F871', '#FFC75F', '#D65DB1', '#0089BA']
+    
+    # Plot each category with thicker lines and larger markers
+    pivot_data.plot(ax=ax, marker='o', markersize=8, linewidth=3, color=colors[:len(pivot_data.columns)])
 
-    ax.set_title('Sales Trends by Product Category', fontsize=16)
-    ax.set_xlabel('Date', fontsize=12)
-    ax.set_ylabel('Total Sales (₹)', fontsize=12)
+    # Add data labels to the last point of each line
+    for i, category in enumerate(pivot_data.columns):
+        last_date = pivot_data.index[-1]
+        last_value = pivot_data[category].iloc[-1]
+        
+        # Add value labels with category
+        ax.annotate(f'{category}: ₹{int(last_value):,}',
+                   xy=(last_date, last_value),
+                   xytext=(10, 0),
+                   textcoords='offset points',
+                   fontsize=10,
+                   fontweight='bold',
+                   color=colors[i % len(colors)])
+
+    ax.set_title('What We Sold - Sales by Product Type', fontsize=18, fontweight='bold')
+    ax.set_xlabel('Date', fontsize=14)
+    ax.set_ylabel('Total Sales (₹)', fontsize=14)
     ax.grid(True, alpha=0.3)
-    ax.legend(title='Category')
+    
+    # Create a clearer legend with larger font
+    legend = ax.legend(title='Product Type', fontsize=12, title_fontsize=14)
+    
+    # Add a text box with simple explanation
+    explanation = "This chart shows how much money we made selling different products over time.\nHigher lines mean we sold more of that product!"
+    plt.figtext(0.5, 0.01, explanation, ha='center', fontsize=12, 
+                bbox={'facecolor':'#F0F0F0', 'alpha':0.5, 'pad':5})
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.05, 1, 0.95])  # Make room for the explanation text
 
     return fig
 
@@ -90,7 +115,8 @@ def plot_correlation_heatmap(data):
 
 def plot_weather_impact(data, weather_metric='Temperature'):
     """
-    Plot impact of weather on sales
+    Plot impact of weather on sales with simplified visualization
+    for easier understanding even for non-technical users
 
     Parameters:
     -----------
@@ -104,14 +130,17 @@ def plot_weather_impact(data, weather_metric='Temperature'):
     matplotlib.figure.Figure
         Figure object containing the plot
     """
-    fig, ax = plt.subplots(figsize=(12, 6))
+    # Use bright, friendly colors
+    colors = ['#FF9671', '#845EC2', '#00C2A8', '#F9F871', '#FFC75F', '#D65DB1', '#0089BA']
+    
+    fig, ax = plt.subplots(figsize=(12, 7))
 
     if weather_metric == 'Temperature':
         # Group data by temperature ranges
         data['Temp_Range'] = pd.cut(
             data['Temperature'], 
             bins=[-20, 0, 10, 20, 30, 50],
-            labels=['Below 0°C', '0-10°C', '10-20°C', '20-30°C', 'Above 30°C']
+            labels=['Very Cold', 'Cold', 'Cool', 'Warm', 'Hot']
         )
 
         # Calculate average sales by temperature range and category
@@ -120,19 +149,31 @@ def plot_weather_impact(data, weather_metric='Temperature'):
         # Pivot data
         pivot_data = grouped_data.pivot(index='Temp_Range', columns='Category', values='Total_Sales')
 
-        # Plot
-        pivot_data.plot(kind='bar', ax=ax)
+        # Plot with custom colors
+        ax = pivot_data.plot(kind='bar', ax=ax, color=colors[:len(pivot_data.columns)], 
+                     width=0.8, figsize=(12, 7))
 
-        ax.set_title('Average Sales by Temperature Range', fontsize=16)
-        ax.set_xlabel('Temperature Range', fontsize=12)
-        ax.set_ylabel('Average Sales (₹)', fontsize=12)
+        # Add value labels on top of bars
+        for container in ax.containers:
+            ax.bar_label(container, fmt='₹%.1fK', label_type='edge', fontsize=9, fontweight='bold')
+
+        ax.set_title('How Weather Affects Our Sales', fontsize=18, fontweight='bold')
+        ax.set_xlabel('Weather Temperature', fontsize=14)
+        ax.set_ylabel('Average Sales (₹)', fontsize=14)
+        
+        # Add emoji indicators
+        emojis = ['❄️', '🥶', '🧥', '☀️', '🔥']
+        for i, emoji in enumerate(emojis):
+            if i < len(pivot_data.index):
+                ax.annotate(emoji, xy=(i, -max(pivot_data.values.max()) * 0.05), 
+                           ha='center', fontsize=20)
 
     elif weather_metric == 'Precipitation':
         # Group data by precipitation ranges
         data['Precip_Range'] = pd.cut(
             data['Precipitation'] if 'Precipitation' in data.columns else data['Rainfall'],
             bins=[-0.1, 0, 5, 10, 20, 100],
-            labels=['None', '0-5mm', '5-10mm', '10-20mm', 'Above 20mm']
+            labels=['No Rain', 'Light Rain', 'Moderate', 'Heavy', 'Stormy']
         )
 
         # Calculate average sales by precipitation range and category
@@ -141,12 +182,24 @@ def plot_weather_impact(data, weather_metric='Temperature'):
         # Pivot data
         pivot_data = grouped_data.pivot(index='Precip_Range', columns='Category', values='Total_Sales')
 
-        # Plot
-        pivot_data.plot(kind='bar', ax=ax)
+        # Plot with custom colors
+        ax = pivot_data.plot(kind='bar', ax=ax, color=colors[:len(pivot_data.columns)], 
+                     width=0.8, figsize=(12, 7))
 
-        ax.set_title('Average Sales by Precipitation', fontsize=16)
-        ax.set_xlabel('Precipitation Range', fontsize=12)
-        ax.set_ylabel('Average Sales (₹)', fontsize=12)
+        # Add value labels on top of bars
+        for container in ax.containers:
+            ax.bar_label(container, fmt='₹%.1fK', label_type='edge', fontsize=9, fontweight='bold')
+
+        ax.set_title('How Rain Affects Our Sales', fontsize=18, fontweight='bold')
+        ax.set_xlabel('Amount of Rain', fontsize=14)
+        ax.set_ylabel('Average Sales (₹)', fontsize=14)
+        
+        # Add emoji indicators
+        emojis = ['☀️', '🌦️', '🌧️', '⛈️', '🌊']
+        for i, emoji in enumerate(emojis):
+            if i < len(pivot_data.index):
+                ax.annotate(emoji, xy=(i, -max(pivot_data.values.max()) * 0.05), 
+                           ha='center', fontsize=20)
 
     elif weather_metric == 'Weather_Condition':
         # Calculate average sales by weather condition and category
@@ -155,23 +208,54 @@ def plot_weather_impact(data, weather_metric='Temperature'):
         # Pivot data
         pivot_data = grouped_data.pivot(index='Weather_Condition', columns='Category', values='Total_Sales')
 
-        # Plot
-        pivot_data.plot(kind='bar', ax=ax)
+        # Plot with custom colors
+        ax = pivot_data.plot(kind='bar', ax=ax, color=colors[:len(pivot_data.columns)], 
+                     width=0.8, figsize=(12, 7))
 
-        ax.set_title('Average Sales by Weather Condition', fontsize=16)
-        ax.set_xlabel('Weather Condition', fontsize=12)
-        ax.set_ylabel('Average Sales (₹)', fontsize=12)
+        # Add value labels on top of bars
+        for container in ax.containers:
+            ax.bar_label(container, fmt='₹%.1fK', label_type='edge', fontsize=9, fontweight='bold')
+
+        ax.set_title('How Weather Affects Our Sales', fontsize=18, fontweight='bold')
+        ax.set_xlabel('Weather Type', fontsize=14)
+        ax.set_ylabel('Average Sales (₹)', fontsize=14)
+        
+        # Add emoji indicators based on weather condition
+        weather_emojis = {
+            'Sunny': '☀️', 
+            'Cloudy': '☁️', 
+            'Rainy': '🌧️', 
+            'Snowy': '❄️', 
+            'Stormy': '⛈️'
+        }
+        
+        for i, weather in enumerate(pivot_data.index):
+            emoji = weather_emojis.get(weather, '🌡️')
+            ax.annotate(emoji, xy=(i, -max(pivot_data.values.max()) * 0.05), 
+                       ha='center', fontsize=20)
 
     ax.grid(True, alpha=0.3, axis='y')
-    ax.legend(title='Category')
+    legend = ax.legend(title='Products', fontsize=12, title_fontsize=14)
+    
+    # Add a text box with simple explanation
+    if weather_metric == 'Temperature':
+        explanation = "This chart shows how temperature affects our sales.\nSee which products sell better in hot or cold weather!"
+    elif weather_metric == 'Precipitation':
+        explanation = "This chart shows how rain affects our sales.\nSee which products sell better on rainy or dry days!"
+    else:
+        explanation = "This chart shows how different weather types affect our sales.\nSee which products sell better under different weather conditions!"
+        
+    plt.figtext(0.5, 0.01, explanation, ha='center', fontsize=12, 
+                bbox={'facecolor':'#F0F0F0', 'alpha':0.5, 'pad':5})
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.05, 1, 0.95])  # Make room for the explanation
 
     return fig
 
 def plot_sentiment_impact(data):
     """
-    Plot impact of social media sentiment on sales
+    Plot impact of social media sentiment on sales with simplified visualization
+    for easier understanding even for non-technical users
 
     Parameters:
     -----------
@@ -183,13 +267,16 @@ def plot_sentiment_impact(data):
     matplotlib.figure.Figure
         Figure object containing the plot
     """
-    fig, ax = plt.subplots(figsize=(12, 6))
+    # Use bright, friendly colors
+    colors = ['#FF9671', '#845EC2', '#00C2A8', '#F9F871', '#FFC75F', '#D65DB1', '#0089BA']
+    
+    fig, ax = plt.subplots(figsize=(12, 7))
 
-    # Group data by sentiment score ranges
+    # Group data by sentiment score ranges with more intuitive labels
     data['Sentiment_Range'] = pd.cut(
         data['Sentiment_Score'],
         bins=[-1.1, -0.5, 0, 0.5, 1.1],
-        labels=['Very Negative', 'Negative', 'Positive', 'Very Positive']
+        labels=['Very Unhappy 😠', 'Unhappy 🙁', 'Happy 🙂', 'Very Happy 😄']
     )
 
     # Calculate average sales by sentiment range and category
@@ -198,22 +285,40 @@ def plot_sentiment_impact(data):
     # Pivot data
     pivot_data = grouped_data.pivot(index='Sentiment_Range', columns='Category', values='Total_Sales')
 
-    # Plot
-    pivot_data.plot(kind='bar', ax=ax)
+    # Plot with custom colors
+    ax = pivot_data.plot(kind='bar', ax=ax, color=colors[:len(pivot_data.columns)], 
+                width=0.8, figsize=(12, 7))
 
-    ax.set_title('Average Sales by Sentiment Score', fontsize=16)
-    ax.set_xlabel('Sentiment Range', fontsize=12)
-    ax.set_ylabel('Average Sales (₹)', fontsize=12)
+    # Add value labels on top of bars
+    for container in ax.containers:
+        ax.bar_label(container, fmt='₹%.1fK', label_type='edge', fontsize=9, fontweight='bold')
+
+    ax.set_title('How Customer Feelings Affect Our Sales', fontsize=18, fontweight='bold')
+    ax.set_xlabel('How Customers Feel About Us', fontsize=14)
+    ax.set_ylabel('Average Sales (₹)', fontsize=14)
+    
+    # Add a background gradient to emphasize sentiment progression
+    gradient_colors = ['#ffcccb', '#ffe0cc', '#e6ffcc', '#ccffcc']
+    for i, color in enumerate(gradient_colors):
+        if i < len(pivot_data.index):
+            ax.axvspan(i-0.4, i+0.4, color=color, alpha=0.3, zorder=-1)
+    
     ax.grid(True, alpha=0.3, axis='y')
-    ax.legend(title='Category')
+    legend = ax.legend(title='Products', fontsize=12, title_fontsize=14)
+    
+    # Add a text box with simple explanation
+    explanation = "This chart shows how customer feelings affect our sales.\nWhen customers are happy about our products, we sell more!"
+    plt.figtext(0.5, 0.01, explanation, ha='center', fontsize=12, 
+                bbox={'facecolor':'#F0F0F0', 'alpha':0.5, 'pad':5})
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.05, 1, 0.95])  # Make room for the explanation
 
     return fig
 
 def plot_sales_forecast(historical_data, predicted_data):
     """
-    Plot historical sales with forecasted values
+    Plot historical sales with forecasted values, with simplified visualization
+    for easier understanding even for non-technical users
 
     Parameters:
     -----------
@@ -227,7 +332,7 @@ def plot_sales_forecast(historical_data, predicted_data):
     matplotlib.figure.Figure
         Figure object containing the plot
     """
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(12, 7))
 
     # Group historical data by date
     historical_grouped = historical_data.groupby('Date')['Total_Sales'].sum().reset_index()
@@ -235,52 +340,94 @@ def plot_sales_forecast(historical_data, predicted_data):
     # Group predicted data by date
     predicted_grouped = predicted_data.groupby('Date')['Predicted_Sales'].sum().reset_index()
 
-    # Plot historical data
+    # Plot historical data with thicker line
     ax.plot(
         historical_grouped['Date'], 
         historical_grouped['Total_Sales'],
         marker='o',
-        markersize=4,
-        linewidth=2,
-        label='Historical Sales'
+        markersize=8,
+        linewidth=3,
+        color='#0066cc',
+        label='Past Sales'
     )
 
-    # Plot predicted data
+    # Plot predicted data with thicker line
     ax.plot(
         predicted_grouped['Date'],
         predicted_grouped['Predicted_Sales'],
         marker='s',
-        markersize=4,
-        linewidth=2,
+        markersize=8,
+        linewidth=3,
         linestyle='--',
-        color='red',
-        label='Predicted Sales'
+        color='#ff9933',
+        label='Future Sales (Predicted)'
     )
 
-    # Add shaded area to distinguish historical from predicted
+    # Add shaded area to distinguish historical from predicted with better color
     min_y = min(historical_grouped['Total_Sales'].min(), predicted_grouped['Predicted_Sales'].min()) * 0.9
     max_y = max(historical_grouped['Total_Sales'].max(), predicted_grouped['Predicted_Sales'].max()) * 1.1
 
     last_historical_date = historical_grouped['Date'].max()
 
-    ax.axvspan(last_historical_date, predicted_grouped['Date'].max(), alpha=0.1, color='gray')
-    ax.axvline(last_historical_date, linestyle=':', color='gray')
+    # Add more clear division between past and future
+    ax.axvspan(last_historical_date, predicted_grouped['Date'].max(), alpha=0.15, color='#ffcc99')
+    ax.axvline(last_historical_date, linestyle='--', color='#ff6600', linewidth=2)
 
+    # Add clearer labels for past and future
     ax.text(
-        last_historical_date, 
-        max_y * 0.95, 
-        'Forecast →', 
-        ha='right', 
-        fontsize=10, 
-        color='gray'
+        historical_grouped['Date'].iloc[len(historical_grouped) // 2], 
+        max_y * 0.9, 
+        'PAST', 
+        ha='center', 
+        fontsize=14, 
+        color='#0066cc',
+        fontweight='bold',
+        bbox={'facecolor':'white', 'alpha':0.8, 'pad':5, 'boxstyle':'round'}
+    )
+    
+    ax.text(
+        predicted_grouped['Date'].iloc[len(predicted_grouped) // 2], 
+        max_y * 0.9, 
+        'FUTURE', 
+        ha='center', 
+        fontsize=14, 
+        color='#ff6600',
+        fontweight='bold',
+        bbox={'facecolor':'white', 'alpha':0.8, 'pad':5, 'boxstyle':'round'}
     )
 
-    ax.set_title('Sales Forecast', fontsize=16)
-    ax.set_xlabel('Date', fontsize=12)
-    ax.set_ylabel('Total Sales (₹)', fontsize=12)
-    ax.grid(True, alpha=0.3)
-    ax.legend()
+    # Annotate last real value and first predicted value
+    last_actual = historical_grouped['Total_Sales'].iloc[-1]
+    first_predicted = predicted_grouped['Predicted_Sales'].iloc[0]
+    
+    ax.annotate(f'Last actual: ₹{int(last_actual):,}',
+               xy=(last_historical_date, last_actual),
+               xytext=(-100, 30),
+               textcoords='offset points',
+               arrowprops=dict(arrowstyle='->'),
+               fontsize=10)
+    
+    ax.annotate(f'First prediction: ₹{int(first_predicted):,}',
+               xy=(predicted_grouped['Date'].iloc[0], first_predicted),
+               xytext=(30, 30),
+               textcoords='offset points',
+               arrowprops=dict(arrowstyle='->'),
+               fontsize=10)
 
-    plt.tight_layout()
+    ax.set_title('What We Expect to Sell in the Future', fontsize=18, fontweight='bold')
+    ax.set_xlabel('Date', fontsize=14)
+    ax.set_ylabel('Total Sales (₹)', fontsize=14)
+    ax.grid(True, alpha=0.3)
+    
+    # Create a clearer legend
+    legend = ax.legend(fontsize=12, loc='upper center', bbox_to_anchor=(0.5, -0.15), 
+                     ncol=2, frameon=True, facecolor='white')
+    
+    # Add a text box with simple explanation
+    explanation = "This chart shows our past sales and predicts future sales.\nThe blue line shows what we sold in the past, and the orange line shows what we expect to sell in the future."
+    plt.figtext(0.5, 0.01, explanation, ha='center', fontsize=12, 
+                bbox={'facecolor':'#F0F0F0', 'alpha':0.5, 'pad':5})
+
+    plt.tight_layout(rect=[0, 0.08, 1, 0.95])  # Make room for the explanation
 
     return fig
