@@ -220,7 +220,39 @@ def data_upload_page():
 
     # Sales data upload
     st.subheader("Upload Sales Data")
-    st.info("Please upload a CSV file containing your sales data with columns: Date, Product_ID, Category, Quantity, Price")
+    
+    with st.expander("📋 Data Format Requirements (Important)", expanded=True):
+        st.markdown("""
+        ### Required Data Format for Accurate Predictions
+        
+        Your CSV file must contain these columns (column names are case-sensitive):
+        
+        | Column | Format | Description |
+        |--------|--------|-------------|
+        | **Date** | YYYY-MM-DD | Transaction date (required format) |
+        | **Product_ID** | Text/Number | Unique product identifier |
+        | **Category** | Text | Product category (e.g., Electronics, Clothing) |
+        | **Quantity** | Number | Units sold |
+        | **Price** | Number | Price per unit in ₹ |
+        
+        ### Additional Guidelines:
+        - **Date column is critical** and must be in YYYY-MM-DD format
+        - Ensure no missing values in Date, Category, Quantity and Price columns
+        - Categories should be consistent (same spelling and capitalization)
+        - Price should be in Indian Rupees (₹)
+        - Include at least 30 days of data for meaningful predictions
+        - For best results, upload data with at least 90 days of history
+        
+        ### Sample Format:
+        ```
+        Date,Product_ID,Category,Quantity,Price
+        2023-01-01,P001,Electronics,5,15000
+        2023-01-01,P002,Clothing,10,1200
+        2023-01-02,P001,Electronics,3,15000
+        ```
+        """)
+    
+    st.info("Please upload a CSV file containing your sales data with the required columns")
 
     sales_data_file = st.file_uploader("Choose a CSV file", type="csv")
 
@@ -255,19 +287,59 @@ def data_upload_page():
 
     # Weather data parameters
     st.subheader("Weather Data Parameters")
+    
+    with st.expander("🌦️ Weather Data Guidelines", expanded=True):
+        st.markdown("""
+        ### Weather Data Requirements
+        
+        For accurate weather-related insights, follow these guidelines:
+        
+        - **Enter your actual business location** for relevant weather data
+        - Indian cities (e.g., Mumbai, Delhi, Bangalore) have comprehensive weather data
+        - Weather data will be automatically matched to your sales data dates
+        - For best results, we'll collect data on:
+          - Daily average temperature
+          - Weather conditions (sunny, rainy, etc.)
+          - Any extreme weather events
+        
+        ### How Weather Data Improves Predictions
+        - Temperature trends show seasonal buying patterns
+        - Weather conditions often influence foot traffic and product interest
+        - Helps identify weather-sensitive product categories
+        """)
 
     col1, col2 = st.columns(2)
 
     with col1:
-        location = st.text_input("Location (City)", "New York")
+        location = st.text_input("Location (City)", "Mumbai")
 
     with col2:
         days_back = st.slider("Historical days to fetch", 30, 365, 90)
 
     # Social media sentiment parameters
     st.subheader("Social Media Sentiment Parameters")
+    
+    with st.expander("📱 Sentiment Analysis Guidelines", expanded=True):
+        st.markdown("""
+        ### Sentiment Analysis Requirements
+        
+        Sentiment analysis examines public opinion about your products or brand:
+        
+        - **Enter product-specific keywords** for most relevant results 
+          (e.g., "smartphone, mobile phone, iPhone" for an electronics store)
+        - **Include your brand name** for brand sentiment analysis
+        - **Add product categories** to analyze sentiment by category
+        - Separate keywords with commas
+        - More specific keywords = more relevant sentiment data
+        
+        ### How Sentiment Data Improves Predictions
+        - Identifies how public perception affects sales
+        - Shows correlation between social buzz and buying patterns
+        - Helps anticipate demand spikes from positive sentiment
+        - Acts as early warning system for potential sales drops
+        """)
 
-    product_keywords = st.text_input("Product Keywords (comma separated)", "retail, shopping, store")
+    product_keywords = st.text_input("Product Keywords (comma separated)", "clothing, fashion, apparel, ethnic wear, festive")
 
     # Fetch data button
     if st.button("Fetch Weather & Sentiment Data"):
