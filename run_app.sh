@@ -1,5 +1,5 @@
 #!/bin/bash
-# run_app.sh - Script to run the Sales Prediction Application
+# run_app.sh - Script to run the Retail Forecaster Application
 
 # Check if virtual environment exists, if not create one
 if [ ! -d "venv" ]; then
@@ -35,7 +35,7 @@ if [ -z "$OPENWEATHERMAP_API_KEY" ]; then
 fi
 
 # Run the application
-echo "Starting Sales Prediction Application..."
+echo "Starting Retail Forecaster Application..."
 streamlit run app.py
 
 # Deactivate the virtual environment when done

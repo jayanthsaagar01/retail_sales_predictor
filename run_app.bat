@@ -1,5 +1,5 @@
 @echo off
-:: run_app.bat - Script to run the Sales Prediction Application on Windows
+:: run_app.bat - Script to run the Retail Forecaster Application on Windows
 
 echo Checking for virtual environment...
 if not exist venv (
@@ -35,7 +35,7 @@ if "%OPENWEATHERMAP_API_KEY%"=="" (
 )
 
 :: Run the application
-echo Starting Sales Prediction Application...
+echo Starting Retail Forecaster Application...
 streamlit run app.py
 
 :: Keep the window open after Streamlit exits
