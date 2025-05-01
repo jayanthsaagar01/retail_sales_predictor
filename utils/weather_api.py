@@ -44,9 +44,9 @@ def get_weather_data(location, start_date, end_date):
             # Use OpenWeatherMap API
             st.info("Using OpenWeatherMap API for weather data")
             
-            # Get historical data for a sample of dates to limit API calls
+            # Get historical data for a subset of dates to limit API calls
             # For a production app, you would need to handle this more efficiently
-            sample_dates = get_sample_dates(date_range, max_samples=10)
+            selected_dates = get_date_subset(date_range, max_dates=10)
             
             for date in sample_dates:
                 date_str = date.strftime("%Y-%m-%d")
@@ -132,29 +132,29 @@ def get_weather_data(location, start_date, end_date):
     
     return weather_df
 
-def get_sample_dates(date_range, max_samples=10):
+def get_date_subset(date_range, max_dates=10):
     """
-    Get a sample of dates to query API
+    Get a subset of dates to query API
     
     Parameters:
     -----------
     date_range : pandas.DatetimeIndex
         Full date range
-    max_samples : int
-        Maximum number of samples to take
+    max_dates : int
+        Maximum number of dates to include
     
     Returns:
     --------
     list
-        List of sampled datetime objects
+        List of selected datetime objects
     """
     n_dates = len(date_range)
     
-    if n_dates <= max_samples:
+    if n_dates <= max_dates:
         return date_range
     
-    # Take evenly spaced samples
-    indices = np.linspace(0, n_dates - 1, max_samples, dtype=int)
+    # Take evenly spaced subset
+    indices = np.linspace(0, n_dates - 1, max_dates, dtype=int)
     return [date_range[i] for i in indices]
 
 def generate_synthetic_weather(location, date):

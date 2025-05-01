@@ -262,8 +262,8 @@ def data_upload_page():
             data = pd.read_csv(sales_data_file)
             st.success("Sales data uploaded successfully!")
 
-            # Display sample data
-            st.subheader("Sample Data")
+            # Display data preview
+            st.subheader("Data Preview")
             st.dataframe(data.head())
 
             # Process sales data
@@ -360,8 +360,8 @@ def data_upload_page():
                 else:
                     st.success("Weather data fetched successfully!")
 
-                # Display sample weather data
-                st.subheader("Sample Weather Data")
+                # Display weather data preview
+                st.subheader("Weather Data Preview")
                 st.dataframe(weather_data.head())
 
             with st.spinner("Analyzing social media sentiment..."):
@@ -377,8 +377,8 @@ def data_upload_page():
                 else:
                     st.success("Sentiment analysis completed!")
 
-                # Display sample sentiment data
-                st.subheader("Sample Sentiment Data")
+                # Display sentiment data preview
+                st.subheader("Sentiment Data Preview")
                 st.dataframe(sentiment_data.head())
 
             # Combine datasets
