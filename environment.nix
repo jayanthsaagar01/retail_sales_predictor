@@ -1,14 +1,16 @@
-# Environment configuration for Retail Forecaster
-# This replaces the replit.nix configuration
-
-{ pkgs }:
-
-{
+{pkgs}: {
   deps = [
-    pkgs.python311
-    pkgs.python311Packages.pip
-    pkgs.python311Packages.virtualenv
-    pkgs.python311Packages.wheel
-    pkgs.python311Packages.setuptools
+    pkgs.postgresql
+    pkgs.tk
+    pkgs.tcl
+    pkgs.qhull
+    pkgs.pkg-config
+    pkgs.gtk3
+    pkgs.gobject-introspection
+    pkgs.ghostscript
+    pkgs.freetype
+    pkgs.ffmpeg-full
+    pkgs.cairo
+    pkgs.glibcLocales
   ];
 }

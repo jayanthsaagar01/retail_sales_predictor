@@ -1,15 +1,34 @@
-# Main configuration file for Retail Forecaster
-# This replaces the .replit configuration
+modules = ["python-3.11"]
 
-[environment]
-PYTHONPATH = "${PYTHONPATH}:${HOME}/workspace"
+[nix]
+channel = "stable-24_05"
+packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "libxcrypt", "pkg-config", "qhull", "tcl", "tk", "xsimd"]
 
-[server]
-port = 5000
-host = "0.0.0.0"
+[deployment]
+deploymentTarget = "autoscale"
+run = ["streamlit", "run", "app.py", "--server.port", "5000"]
 
-[application]
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Retail Forecaster"
+
+[[workflows.workflow]]
 name = "Retail Forecaster"
-version = "1.0.0"
-description = "A machine learning application for retail sales forecasting"
-main = "app.py"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run app.py --server.port 5000"
+waitForPort = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
