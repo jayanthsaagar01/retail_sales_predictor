@@ -1,3 +1,26 @@
-.python-version
-clean_project.md
+# Ignore databases
+*.db
 
+# Ignore local Python version settings
+.python-version
+
+# Ignore streamlit cache
+.streamlit/
+
+# Ignore virtual environments
+.venv/
+env/
+myenv-a/
+
+# Ignore system files
+.DS_Store
+
+# Ignore lock files
+uv.lock
+
+# Ignore setup scripts (optional)
+mac_setup.md
+windows_setup.md
+
+# Ignore confidential docs
+clean_project.md
